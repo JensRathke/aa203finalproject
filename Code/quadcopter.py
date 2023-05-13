@@ -25,13 +25,13 @@ class QuadcopterPlanar:
             Quadcopter dynamics
         
         Parameters
-            s: state (x, dx, y, dy, phi, omega)
+            s: state (x, y, dx, dy, psi, omega)
             u: control input (t1, t2)
 
         Returns
             derivative of the state with respect to time
         """
-        x, dx, y, dy, phi, omega = s
+        x, y, dx, dy, psi, omega = s
         t1, t2 = u
 
         Ixx = (2 * self.m * (self.r^2) / 5) + 2 * self.m * (self.l^2) 
@@ -40,9 +40,9 @@ class QuadcopterPlanar:
 
         ds = np.array([
             dx,
-            (-(t1 + t2) * np.sin(phi)) / self.m,
+            (-(t1 + t2) * np.sin(psi)) / self.m,
             dy,
-            ((t1 + t2) * np.cos(phi)) / self.m - self.g,
+            ((t1 + t2) * np.cos(psi)) / self.m - self.g,
             omega,
             ((t2 - t1) * self.l) / Izz
         ])
@@ -72,14 +72,26 @@ class QuadcopterCubic:
             Quadcopter dynamics
         
         Parameters
-            s: state (x, dx, y, dy, phi, omega)
-            u: control input (t1, t2)
+            s: state (x, y, z, dx, dy, dz, phi, theta, psi, dphi, dtheta, dpsi)
+                x = the inertial (north) position of the quadrotor along i_head
+                y = the inertial (east) position of the quadrotor along j_head
+                z = the altitude of the aircraft measured along -k_head
+                dx = the body frame velocity measured along i_head
+                dy = the body frame velocity measured along j_head
+                dz = the body frame velocity measured along k_head
+                phi = the roll angle
+                theta = the pitch angle
+                psi = the yaw angle
+                dphi = the roll rate measured along i_head
+                dtheta = the pitch rate measured along j_head
+                dpsi = the yaw rate measured along k_head
+            u: control input (t1, t2, t3, t4)
 
         Returns
             derivative of the state with respect to time
         """
-        x, dx, y, dy, phi, omega = s
-        t1, t2 = u
+        x, y, z, dx, dy, dz, phi, theta, psi, dphi, dtheta, dpsi = s
+        t1, t2, t3, t4 = u
 
         Ixx = (2 * self.m * (self.r^2) / 5) + 2 * self.m * (self.l^2) 
         Iyy = (2 * self.m * (self.r^2) / 5) + 2 * self.m * (self.l^2)
@@ -90,7 +102,7 @@ class QuadcopterCubic:
             (-(t1 + t2) * np.sin(phi)) / self.m,
             dy,
             ((t1 + t2) * np.cos(phi)) / self.m - self.g,
-            omega,
+            dtheta,
             ((t2 - t1) * self.l) / Izz
         ])
 

@@ -12,7 +12,7 @@ class SimulationPlanar:
         """
 
 class SimulationCubic:
-    """ Simulation for a planar Quadcopter """
+    """ Simulation for a cubic Quadcopter """
     def __init__(self):
         """
         Functionality
