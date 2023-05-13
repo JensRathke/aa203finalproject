@@ -6,7 +6,7 @@ import matplotlib.patches as mpatches
 import matplotlib.transforms as mtransforms
 import matplotlib.animation as animation
 
-def animate_planar_quad(t, x, y, θ):
+def animate_planar_quad(t, x, y, psi):
     """
     Animations for various dynamical systems using `matplotlib`.
 
@@ -16,13 +16,13 @@ def animate_planar_quad(t, x, y, θ):
     """
     """Animate the planar quadrotor system from given position data.
 
-    All arguments are assumed to be 1-D NumPy arrays, where `x`, `y`, and `θ`
+    All arguments are assumed to be 1-D NumPy arrays, where `x`, `y`, and `psi`
     are the degrees of freedom of the planar quadrotor over time `t`.
 
     Example usage:
         import matplotlib.pyplot as plt
         from animations import animate_planar_quad
-        fig, ani = animate_planar_quad(t, x, θ)
+        fig, ani = animate_planar_quad(t, x, y, psi)
         ani.save('planar_quad.mp4', writer='ffmpeg')
         plt.show()
     """
@@ -88,7 +88,7 @@ def animate_planar_quad(t, x, y, θ):
         return artists
 
     dt = t[1] - t[0]
-    ani = animation.FuncAnimation(fig, animate, t.size, fargs=(t, x, y, θ),
+    ani = animation.FuncAnimation(fig, animate, t.size, fargs=(t, x, y, psi),
                                   interval=dt*1000, blit=True)
     return fig, ani
 

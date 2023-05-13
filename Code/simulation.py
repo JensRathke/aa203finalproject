@@ -11,6 +11,20 @@ class SimulationPlanar:
             
         """
 
+    def get_goalstate():
+        """
+        Functionality
+            Returns current goal state of the landing platform.
+        
+        Parameters
+            -
+
+        Returns
+            goal state as a np.array
+        """
+
+        
+
 class SimulationCubic:
     """ Simulation for a cubic Quadcopter """
     def __init__(self):

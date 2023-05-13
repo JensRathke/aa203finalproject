@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 
 import numpy as np
+import matplotlib.pyplot as plt
+
+from animation import *
 
 class QuadcopterPlanar:
     """ Planar Quadcopter """
@@ -14,12 +17,12 @@ class QuadcopterPlanar:
             len_rotor_arm: length of a rotor arm (default 4.6 m)
             cabin_radius: radius of the cabin (default 1.5 m)
         """
-        self.m = mass
-        self.l = len_rotor_arm
-        self.r = cabin_radius
+        self.m = mass # kg
+        self.l = len_rotor_arm # m
+        self.r = cabin_radius # m
         self.g = 9.81 # m/s²
 
-    def quadcopter_dynamics(self, s, u):
+    def dynamics(self, s, u):
         """
         Functionality
             Quadcopter dynamics
@@ -49,6 +52,20 @@ class QuadcopterPlanar:
 
         return ds
     
+    def animate(self, t, s, filename):
+        """
+        Functionality
+            Animate a quadcopter trajectory
+        
+        Parameters
+            t: time
+            s: state trajectory (x, y, dx, dy, psi, omega)
+            filename: name of the output file without file-extension
+        """
+        fig, ani = animate_planar_quad(t, s[0], s[1], s[4])
+        ani.save(filename + '.mp4', writer='ffmpeg')
+        plt.show()
+    
 class QuadcopterCubic:
     """ Cubic Quadcopter """
     def __init__(self, mass = 450, len_rotor_arm = 4.6, cabin_radius = 1.5):
@@ -66,7 +83,7 @@ class QuadcopterCubic:
         self.r = cabin_radius
         self.g = 9.81 # m/s²
 
-    def quadcopter_dynamics(self, s, u):
+    def dynamics(self, s, u):
         """
         Functionality
             Quadcopter dynamics
@@ -109,4 +126,11 @@ class QuadcopterCubic:
         return ds
 
 if __name__ == "__main__":
-    pass
+    testcopter = QuadcopterPlanar()
+
+    t = np.linspace(0, 10, 101)
+
+    s = np.zeros((101, 6))
+    s[:, 0] = np.linspace(3, 0, 101)
+
+    testcopter.animate(t, s, "test")
