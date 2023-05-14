@@ -6,7 +6,7 @@ import matplotlib.patches as mpatches
 import matplotlib.transforms as mtransforms
 import matplotlib.animation as animation
 
-def animate_planar_quad(filename, t, x, y, psi, x_goal, y_goal, psi_goal, l, r, h):
+def animate_planar_quad(filename, t, x, y, phi, x_goal, y_goal, phi_goal, l, r, h):
     """
     Based on: Spencer M. Richards
               Autonomous Systems Lab (ASL), Stanford
@@ -20,10 +20,10 @@ def animate_planar_quad(filename, t, x, y, psi, x_goal, y_goal, psi_goal, l, r, 
         t: array of size N with the sequence of time stamps
         x: array of size N with the x coordinates
         y: array of size N with the y coordinates
-        psi: array of size N with the angle of the quadcopter
+        phi: array of size N with the angle of the quadcopter
         x_goal: array of size N with the x coordinates of the goal state (landing pad)
         y_goal: array of size N with the y coordinates (landing pad)
-        psi_goal: array of size N with the angle of the quadcopter (landing pad)
+        phi_goal: array of size N with the angle of the quadcopter (landing pad)
         l: length of a rotor arm
         r: radius of the cabin
         h: height of the center of mass above skid surface
@@ -123,7 +123,7 @@ def animate_planar_quad(filename, t, x, y, psi, x_goal, y_goal, psi_goal, l, r, 
         return artists
 
     dt = t[1] - t[0]
-    ani = animation.FuncAnimation(fig, animate, t.size, fargs=(t, x, y, psi, x_goal, y_goal, psi_goal),
+    ani = animation.FuncAnimation(fig, animate, t.size, fargs=(t, x, y, phi, x_goal, y_goal, phi_goal),
                                   interval=dt*1000, blit=True)
     
     ani.save(filename + '.mp4', writer='ffmpeg')
