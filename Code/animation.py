@@ -93,6 +93,7 @@ def animate_planar_quad(t, x, y, psi, x_goal, y_goal, psi_goal, l, r, h):
         ax.add_patch(patch)
 
     def animate(k, t, x, y, psi, x_goal, y_goal, psi_goal):
+        # Animation of the quadcopter trajectory
         transform = mtransforms.Affine2D().rotate_around(0., 0., psi[k])
         transform += mtransforms.Affine2D().translate(x[k], y[k])
         transform += ax.transData
@@ -101,11 +102,12 @@ def animate_planar_quad(t, x, y, psi, x_goal, y_goal, psi_goal, l, r, h):
         trace.set_data(x[:k+1], y[:k+1])
         timestamp.set_text('t = {:.1f} s'.format(t[k]))
 
-        transform_pad = mtransforms.Affine2D().rotate_around(0., 0., psi_goal[k])
-        transform_pad += mtransforms.Affine2D().translate(x_goal[k], y_goal[k])
-        transform_pad += ax.transData
+        # Animation of the landing pad
+        transform = mtransforms.Affine2D().rotate_around(0., 0., psi_goal[k])
+        transform += mtransforms.Affine2D().translate(x_goal[k], y_goal[k])
+        transform += ax.transData
         for patch in patches_pad:
-            patch.set_transform(transform_pad)
+            patch.set_transform(transform)
 
         artists = patches + (trace, timestamp) + patches_pad
         return artists
