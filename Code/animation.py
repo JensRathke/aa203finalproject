@@ -6,7 +6,7 @@ import matplotlib.patches as mpatches
 import matplotlib.transforms as mtransforms
 import matplotlib.animation as animation
 
-def animate_planar_quad(t, x, y, psi, x_goal, y_goal, psi_goal, l, r, h):
+def animate_planar_quad(filename, t, x, y, psi, x_goal, y_goal, psi_goal, l, r, h):
     """
     Animations for various dynamical systems using `matplotlib`.
 
@@ -115,7 +115,9 @@ def animate_planar_quad(t, x, y, psi, x_goal, y_goal, psi_goal, l, r, h):
     dt = t[1] - t[0]
     ani = animation.FuncAnimation(fig, animate, t.size, fargs=(t, x, y, psi, x_goal, y_goal, psi_goal),
                                   interval=dt*1000, blit=True)
-    return fig, ani
+    
+    ani.save(filename + '.mp4', writer='ffmpeg')
+    plt.show()
 
 
 if __name__ == "__main__":

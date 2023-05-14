@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import numpy as np
-import matplotlib.pyplot as plt
 
 from simulation import *
 from quadcopter import *
@@ -14,7 +13,7 @@ if __name__ == '__main__':
 
     quadcopter = QuadcopterPlanar()
 
-    s_init = np.array((1., 5., 0., 0., 0.25 * np.pi, 0.))
+    s_init = np.array((1., 10., 0., 0., 0.1 * np.pi, 0.))
 
     controller = PQcopter_controller_iLQR(quadcopter, s_init)
 

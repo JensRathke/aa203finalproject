@@ -5,6 +5,7 @@ import jax
 import jax.numpy as jnp
 import matplotlib.pyplot as plt
 
+from plotting import *
 from animation import *
 
 class QuadcopterPlanar:
@@ -43,7 +44,7 @@ class QuadcopterPlanar:
 
         Ixx = (2. * self.m * (self.r ** 2.) / 5.) + 2. * self.m * (self.l ** 2.) 
         Iyy = (2. * self.m * (self.r ** 2.) / 5.) + 2. * self.m * (self.l ** 2.)
-        Izz = (2. * self.m * (self.r ** 2.) / 5.) + 4. * self.m * (self.l ** 2.)
+        Izz = 1 # (2. * self.m * (self.r ** 2.) / 5.) + 4. * self.m * (self.l ** 2.)
 
         ds = jnp.array([
             dx,
@@ -67,10 +68,20 @@ class QuadcopterPlanar:
             sg: goal state trajectory (x, y, dx, dy, psi, omega)
             filename: name of the output file without file-extension
         """
-        fig, ani = animate_planar_quad(t, s[:, 0], s[:, 1], s[:, 4], sg[:, 0], sg[:, 1], sg[:, 4], self.l, self.r, self.h)
-        ani.save(filename + '.mp4', writer='ffmpeg')
-        plt.show()
-    
+        animate_planar_quad(filename, t, s[:, 0], s[:, 1], s[:, 4], sg[:, 0], sg[:, 1], sg[:, 4], self.l, self.r, self.h)
+
+    def plot_trajectory(self, t, s, filename):
+        """
+        Functionality
+            Plot a quadcopter trajectory
+        
+        Parameters
+            t: time
+            s: state trajectory (x, y, dx, dy, psi, omega)
+            filename: name of the output file without file-extension
+        """
+        plot_3x2(filename, t, s[:, 0], s[:, 1], s[:, 2], s[:, 3], s[:, 4], s[:, 5], "iLQR trajectory")
+            
 class QuadcopterCubic:
     """ Cubic Quadcopter """
     def __init__(self, mass = 450, len_rotor_arm = 4.6, cabin_radius = 1.5):

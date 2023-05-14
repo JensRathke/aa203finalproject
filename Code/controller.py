@@ -47,8 +47,8 @@ class PQcopter_controller_iLQR():
         self.R = 1e-2*np.eye(self.m)                     # control cost matrix
         self.QN = 1e2*np.eye(self.n)                     # terminal state cost matrix
         self.s_init = s_init                        # initial state
-        self.s_goal = np.array([0., self.qcopter.h, 0., 0., 0., 0.])      # goal state
-        self.T = 10.                                # simulation time
+        self.s_goal = np.array([0., self.qcopter.h, 0., 0., 0. , 0.])      # goal state
+        self.T = 30.                                # simulation time
         self.dt = 0.1 # s                           # sampling time
 
     def linearize(self, f, s, u):
@@ -173,6 +173,7 @@ class PQcopter_controller_iLQR():
         sg = np.zeros((t.size, 6))
         sg[:, 1] = self.qcopter.h
 
+        self.qcopter.plot_trajectory(t, s, "Figures/test_iLQR_s")
         self.qcopter.animate(t, s, sg, "Animations/test_iLQR")
 
 if __name__ == "__main__":
