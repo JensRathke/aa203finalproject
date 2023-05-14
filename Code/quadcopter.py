@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
 import numpy as np
+import jax
+import jax.numpy as jnp
 import matplotlib.pyplot as plt
 
 from animation import *
@@ -30,24 +32,24 @@ class QuadcopterPlanar:
             Quadcopter dynamics
         
         Parameters
-            s: state (x, y, dx, dy, psi, omega)
+            s: state (x, y, dx, dy, phi, omega)
             u: control input (t1, t2)
 
         Returns
             derivative of the state with respect to time
         """
-        x, y, dx, dy, psi, omega = s
+        x, y, dx, dy, phi, omega = s
         t1, t2 = u
 
-        Ixx = (2 * self.m * (self.r^2) / 5) + 2 * self.m * (self.l^2) 
-        Iyy = (2 * self.m * (self.r^2) / 5) + 2 * self.m * (self.l^2)
-        Izz = (2 * self.m * (self.r^2) / 5) + 4 * self.m * (self.l^2)
+        Ixx = (2. * self.m * (self.r ** 2.) / 5.) + 2. * self.m * (self.l ** 2.) 
+        Iyy = (2. * self.m * (self.r ** 2.) / 5.) + 2. * self.m * (self.l ** 2.)
+        Izz = (2. * self.m * (self.r ** 2.) / 5.) + 4. * self.m * (self.l ** 2.)
 
-        ds = np.array([
+        ds = jnp.array([
             dx,
-            (-(t1 + t2) * np.sin(psi)) / self.m,
+            (-(t1 + t2) * jnp.sin(phi)) / self.m,
             dy,
-            ((t1 + t2) * np.cos(psi)) / self.m - self.g,
+            ((t1 + t2) * jnp.cos(phi)) / self.m - self.g,
             omega,
             ((t2 - t1) * self.l) / Izz
         ])
