@@ -159,7 +159,9 @@ if __name__ == "__main__":
     t = np.linspace(0, 10, 101)
 
     s = np.zeros((101, 6))
-    s[:, 1] = np.linspace(4 + testcopter.h, 0 + testcopter.h, 101)
+    s[:, 1] = np.linspace(6 + testcopter.h, 0 + testcopter.h, 101)
+    s[:, 4] = 0.1 * np.pi * np.sin(0.1 * t)
+    
     sg = np.zeros((101, 6))
     sg[:, 4] = 0.1 * np.sin(t)
     sg[:, 0] = 0.3 * np.sin(t)

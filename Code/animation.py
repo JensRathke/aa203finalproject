@@ -45,7 +45,7 @@ def animate_planar_quad(filename, t, x, y, psi, x_goal, y_goal, psi_goal, l, r, 
     # Figure and axis
     fig, ax = plt.subplots(dpi=100)
     x_min, x_max = np.min(x), np.max(x)
-    x_pad = (rod_width + prop_width)/2 + 0.1*(x_max - x_min)
+    x_pad = 1.6 * (rod_width + prop_width)/2 + 0.1*(x_max - x_min)
     y_min, y_max = np.min(y), np.max(y)
     y_pad = (rod_width + prop_width)/2 + 0.1*(y_max - y_min)
     ax.set_xlim([x_min - x_pad, x_max + x_pad])
