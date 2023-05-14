@@ -7,19 +7,21 @@ from animation import *
 
 class QuadcopterPlanar:
     """ Planar Quadcopter """
-    def __init__(self, mass = 450, len_rotor_arm = 4.6, cabin_radius = 1.5):
+    def __init__(self, mass = 450, len_rotor_arm = 3.6, cabin_radius = 1.2, h_centre_of_mass = 1.5):
         """
         Functionality
             Quadcopter class
         
         Parameters
             mass: mass of the quadcopter (default 450 kg)
-            len_rotor_arm: length of a rotor arm (default 4.6 m)
-            cabin_radius: radius of the cabin (default 1.5 m)
+            len_rotor_arm: length of a rotor arm (default 3.6 m)
+            cabin_radius: radius of the cabin (default 1.25 m)
+            h_centre_of_mass: height of the center of mass above skid surface (default 1.5 m)
         """
         self.m = mass # kg
         self.l = len_rotor_arm # m
         self.r = cabin_radius # m
+        self.h = h_centre_of_mass # m
         self.g = 9.81 # m/s²
 
     def dynamics(self, s, u):
@@ -52,7 +54,7 @@ class QuadcopterPlanar:
 
         return ds
     
-    def animate(self, t, s, filename):
+    def animate(self, t, s, sg, filename):
         """
         Functionality
             Animate a quadcopter trajectory
@@ -60,9 +62,10 @@ class QuadcopterPlanar:
         Parameters
             t: time
             s: state trajectory (x, y, dx, dy, psi, omega)
+            sg: goal state trajectory (x, y, dx, dy, psi, omega)
             filename: name of the output file without file-extension
         """
-        fig, ani = animate_planar_quad(t, s[0], s[1], s[4])
+        fig, ani = animate_planar_quad(t, s[:, 0], s[:, 1], s[:, 4], sg[:, 0], sg[:, 1], sg[:, 4], self.l, self.r, self.h)
         ani.save(filename + '.mp4', writer='ffmpeg')
         plt.show()
     
@@ -131,6 +134,13 @@ if __name__ == "__main__":
     t = np.linspace(0, 10, 101)
 
     s = np.zeros((101, 6))
-    s[:, 0] = np.linspace(3, 0, 101)
+    s[:, 1] = np.linspace(4 + testcopter.h, 0 + testcopter.h, 101)
+    sg = np.zeros((101, 6))
+    sg[:, 4] = 0.1 * np.sin(t)
+    sg[:, 0] = 0.3 * np.sin(t)
 
-    testcopter.animate(t, s, "test")
+    print(s[:, 1])
+    print(s[:, 4])
+    print(sg[:, 4])
+
+    testcopter.animate(t, s, sg, "Animations/test")
