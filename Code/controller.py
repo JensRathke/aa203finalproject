@@ -173,7 +173,12 @@ class PQcopter_controller_iLQR():
         sg = np.zeros((t.size, 6))
         sg[:, 1] = self.qcopter.h
 
+        print("t.size", t.size)
+        print("N", N)
+        print("t.shape", t.shape)
+
         self.qcopter.plot_trajectory(t, s, "Figures/test_iLQR_s")
+        self.qcopter.plot_controls(t[0:N], u, "Figures/test_iLQR_u")
         self.qcopter.animate(t, s, sg, "Animations/test_iLQR")
 
 if __name__ == "__main__":

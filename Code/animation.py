@@ -8,16 +8,25 @@ import matplotlib.animation as animation
 
 def animate_planar_quad(filename, t, x, y, psi, x_goal, y_goal, psi_goal, l, r, h):
     """
-    Animations for various dynamical systems using `matplotlib`.
-
-    Author: Spencer M. Richards
-            Autonomous Systems Lab (ASL), Stanford
-            (GitHub: spenrich)
-    """
-    """Animate the planar quadrotor system from given position data.
-
-    All arguments are assumed to be 1-D NumPy arrays, where `x`, `y`, and `psi`
-    are the degrees of freedom of the planar quadrotor over time `t`.
+    Based on: Spencer M. Richards
+              Autonomous Systems Lab (ASL), Stanford
+              (GitHub: spenrich)
+    
+    Functionality
+        Animations of a planar quadcopter
+    
+    Parameters
+        filename: name and relative directory of the output file without file extention (e.g.: "dir/filename")
+        t: array of size N with the sequence of time stamps
+        x: array of size N with the x coordinates
+        y: array of size N with the y coordinates
+        psi: array of size N with the angle of the quadcopter
+        x_goal: array of size N with the x coordinates of the goal state (landing pad)
+        y_goal: array of size N with the y coordinates (landing pad)
+        psi_goal: array of size N with the angle of the quadcopter (landing pad)
+        l: length of a rotor arm
+        r: radius of the cabin
+        h: height of the center of mass above skid surface
     """
     # Geometry
     rod_width = 2 * l
@@ -43,7 +52,7 @@ def animate_planar_quad(filename, t, x, y, psi, x_goal, y_goal, psi_goal, l, r, 
     ax.set_ylim([y_min - y_pad, y_max + y_pad])
     ax.set_aspect(1.)
 
-    # Artists
+    # Artists of the quadcopter
     rod = mpatches.Rectangle((-rod_width/2, rod_ratio * r),
                              rod_width, rod_height,
                              facecolor='tab:blue', edgecolor='k')
@@ -81,8 +90,9 @@ def animate_planar_quad(filename, t, x, y, psi, x_goal, y_goal, psi_goal, l, r, 
     trace = ax.plot([], [], '--', linewidth=2, color='tab:orange')[0]
     timestamp = ax.text(0.1, 0.9, '', transform=ax.transAxes)
 
-    pad = mpatches.Rectangle((-2, -0.1),
-                             4, 0.1,
+    # Artists of the landing pad
+    pad = mpatches.Rectangle((-1.5 * l, -0.1),
+                             3 * l, 0.1,
                              facecolor='tab:red', edgecolor='k')
     pad_centre = mpatches.Ellipse((0,
                                    0),

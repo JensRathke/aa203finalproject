@@ -13,7 +13,7 @@ class QuadcopterPlanar:
     def __init__(self, mass = 450, len_rotor_arm = 3.6, cabin_radius = 1.2, h_centre_of_mass = 1.5):
         """
         Functionality
-            Quadcopter class
+            Initialisation of a planar quadcopter
         
         Parameters
             mass: mass of the quadcopter (default 450 kg)
@@ -81,6 +81,18 @@ class QuadcopterPlanar:
             filename: name of the output file without file-extension
         """
         plot_3x2(filename, t, s[:, 0], s[:, 1], s[:, 2], s[:, 3], s[:, 4], s[:, 5], "iLQR trajectory")
+
+    def plot_controls(self, t, u, filename):
+        """
+        Functionality
+            Plot a quadcopter trajectory
+        
+        Parameters
+            t: time
+            u: controls (t1, t2)
+            filename: name of the output file without file-extension
+        """
+        plot_1x2(filename, t, u[:, 0], u[:, 1], "iLQR controls")
             
 class QuadcopterCubic:
     """ Cubic Quadcopter """
