@@ -12,27 +12,6 @@ from tqdm import tqdm
 
 from quadcopter import *
 
-
-
-# class PQcopter_controller_LQR():
-#     """ Controller for a planar quadcopter using LQR """
-#     def __init__(self, qcopter, s_init):
-#         """
-#         Functionality
-#             Initialisation of a controller for a planar quadcopter using iLQR
-
-#         Parameters
-#             qcopter: quadcopter to be controlled
-#             s_init: initial state of the quadcopter
-#         """
-#         self.qcopter = qcopter
-#         self.s_init = s_init
-
-
-
-
-
-
 class PQcopter_controller_iLQR():
     """ Controller for a planar quadcopter using iLQR """
     def __init__(self, qcopter: QuadcopterPlanar, s_init):
@@ -426,9 +405,9 @@ class PQcopter_controller_SCP():
         sg = np.zeros((t.size, 6))
         sg[:, 1] = self.qcopter.h
 
-        self.qcopter.plot_trajectory(t, s, "Figures/test_iLQR_s")
-        self.qcopter.plot_controls(t[0:N], u, "Figures/test_iLQR_u")
-        self.qcopter.animate(t, s, sg, "Animations/test_iLQR")
+        self.qcopter.plot_trajectory(t, s, "Figures/test_SCP_s")
+        self.qcopter.plot_controls(t[0:N], u, "Figures/test_SCP_u")
+        self.qcopter.animate(t, s, sg, "Animations/test_SCP")
 
 
 if __name__ == "__main__":

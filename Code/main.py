@@ -28,7 +28,7 @@ if __name__ == '__main__':
     quadcopter = QuadcopterPlanar()
 
     s_init = jnp.array((1., 10., 0., 0., 0.1 * np.pi, 0.))
-    use_ilqr=True
+    use_ilqr = True
     if use_ilqr:
         controller = PQcopter_controller_iLQR(quadcopter, s_init)
     else:
