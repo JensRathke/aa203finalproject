@@ -44,12 +44,12 @@ class QuadcopterPlanar:
 
         Ixx = (2. * self.m * (self.r ** 2.) / 5.) + 2. * self.m * (self.l ** 2.) 
         Iyy = (2. * self.m * (self.r ** 2.) / 5.) + 2. * self.m * (self.l ** 2.)
-        Izz = 1 # (2. * self.m * (self.r ** 2.) / 5.) + 4. * self.m * (self.l ** 2.)
+        Izz = (2. * self.m * (self.r ** 2.) / 5.) + 4. * self.m * (self.l ** 2.)
 
         ds = jnp.array([
             dx,
-            (-(t1 + t2) * jnp.sin(phi)) / self.m,
             dy,
+            (-(t1 + t2) * jnp.sin(phi)) / self.m,
             ((t1 + t2) * jnp.cos(phi)) / self.m - self.g,
             omega,
             ((t2 - t1) * self.l) / Izz
@@ -144,8 +144,8 @@ class QuadcopterCubic:
 
         ds = np.array([
             dx,
-            (-(t1 + t2) * np.sin(phi)) / self.m,
             dy,
+            (-(t1 + t2) * np.sin(phi)) / self.m,
             ((t1 + t2) * np.cos(phi)) / self.m - self.g,
             dtheta,
             ((t2 - t1) * self.l) / Izz
@@ -161,7 +161,7 @@ if __name__ == "__main__":
     s = np.zeros((101, 6))
     s[:, 1] = np.linspace(6 + testcopter.h, 0 + testcopter.h, 101)
     s[:, 4] = 0.1 * np.pi * np.sin(0.1 * t)
-    
+
     sg = np.zeros((101, 6))
     sg[:, 4] = 0.1 * np.sin(t)
     sg[:, 0] = 0.3 * np.sin(t)
