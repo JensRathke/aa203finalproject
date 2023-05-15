@@ -14,7 +14,7 @@ class QuadcopterPlanar:
         """
         Functionality
             Initialisation of a planar quadcopter
-        
+
         Parameters
             mass: mass of the quadcopter (default 450 kg)
             len_rotor_arm: length of a rotor arm (default 3.6 m)
@@ -31,7 +31,7 @@ class QuadcopterPlanar:
         """
         Functionality
             Quadcopter dynamics
-        
+
         Parameters
             s: state (x, y, dx, dy, phi, omega)
             u: control input (t1, t2)
@@ -42,7 +42,7 @@ class QuadcopterPlanar:
         x, y, dx, dy, phi, omega = s
         t1, t2 = u
 
-        Ixx = (2. * self.m * (self.r ** 2.) / 5.) + 2. * self.m * (self.l ** 2.) 
+        Ixx = (2. * self.m * (self.r ** 2.) / 5.) + 2. * self.m * (self.l ** 2.)
         Iyy = (2. * self.m * (self.r ** 2.) / 5.) + 2. * self.m * (self.l ** 2.)
         Izz = (2. * self.m * (self.r ** 2.) / 5.) + 4. * self.m * (self.l ** 2.)
 
@@ -56,12 +56,12 @@ class QuadcopterPlanar:
         ])
 
         return ds
-    
+
     def animate(self, t, s, sg, filename):
         """
         Functionality
             Animate a quadcopter trajectory
-        
+
         Parameters
             t: time
             s: state trajectory (x, y, dx, dy, psi, omega)
@@ -74,7 +74,7 @@ class QuadcopterPlanar:
         """
         Functionality
             Plot a quadcopter trajectory
-        
+
         Parameters
             t: time
             s: state trajectory (x, y, dx, dy, psi, omega)
@@ -86,21 +86,21 @@ class QuadcopterPlanar:
         """
         Functionality
             Plot a quadcopter trajectory
-        
+
         Parameters
             t: time
             u: controls (t1, t2)
             filename: name of the output file without file-extension
         """
         plot_1x2(filename, t, u[:, 0], u[:, 1], "iLQR controls")
-            
+
 class QuadcopterCubic:
     """ Cubic Quadcopter """
     def __init__(self, mass = 450, len_rotor_arm = 4.6, cabin_radius = 1.5):
         """
         Functionality
             Quadcopter class
-        
+
         Parameters
             mass: mass of the quadcopter (default 450 kg)
             len_rotor_arm: length of a rotor arm (default 4.6 m)
@@ -115,7 +115,7 @@ class QuadcopterCubic:
         """
         Functionality
             Quadcopter dynamics
-        
+
         Parameters
             s: state (x, y, z, dx, dy, dz, phi, theta, psi, dphi, dtheta, dpsi)
                 x = the inertial (north) position of the quadrotor along i_head
@@ -138,11 +138,11 @@ class QuadcopterCubic:
         x, y, z, dx, dy, dz, phi, theta, psi, dphi, dtheta, dpsi = s
         t1, t2, t3, t4 = u
 
-        Ixx = (2 * self.m * (self.r^2) / 5) + 2 * self.m * (self.l^2) 
+        Ixx = (2 * self.m * (self.r^2) / 5) + 2 * self.m * (self.l^2)
         Iyy = (2 * self.m * (self.r^2) / 5) + 2 * self.m * (self.l^2)
         Izz = (2 * self.m * (self.r^2) / 5) + 4 * self.m * (self.l^2)
 
-        ds = np.array([
+        ds = jnp.array([
             dx,
             dy,
             (-(t1 + t2) * np.sin(phi)) / self.m,
