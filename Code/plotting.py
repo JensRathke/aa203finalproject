@@ -37,8 +37,8 @@ def plot_1x2(filename, t, data00, data01, figure_title="figure", plot_titles=[""
     # Show figure
     fig.canvas.manager.set_window_title(figure_title)
     
-    plt.show()
     plt.savefig(filename + '.png')
+    plt.show()
     plt.close(fig)
 
 def plot_3x2(filename, t, data00, data01, data10, data11, data20, data21, figure_title="figure", plot_titles=["", "", "", "", "", ""], xlabels=["time [s]", "time [s]", "time [s]", "time [s]", "time [s]", "time [s]"], ylabels=["", "", "", "", "", ""], fig_num = 1):
@@ -91,8 +91,8 @@ def plot_3x2(filename, t, data00, data01, data10, data11, data20, data21, figure
     # Show figure
     fig.canvas.manager.set_window_title(figure_title)
     
-    plt.show()
     plt.savefig(filename + '.png')
+    plt.show()
     plt.close(fig)
 
 

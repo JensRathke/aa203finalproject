@@ -21,11 +21,15 @@ class QuadcopterPlanar:
             cabin_radius: radius of the cabin (default 1.25 m)
             h_centre_of_mass: height of the center of mass above skid surface (default 1.5 m)
         """
+        self.g = 9.81 # m/s²
         self.m = mass # kg
         self.l = len_rotor_arm # m
         self.r = cabin_radius # m
         self.h = h_centre_of_mass # m
-        self.g = 9.81 # m/s²
+
+        self.Ixx = (2. * self.m * (self.r ** 2.) / 5.) + 2. * self.m * (self.l ** 2.)
+        self.Iyy = (2. * self.m * (self.r ** 2.) / 5.) + 2. * self.m * (self.l ** 2.)
+        self.Izz = 1.0 # (2. * self.m * (self.r ** 2.) / 5.) + 4. * self.m * (self.l ** 2.)
 
     def dynamics(self, s, u):
         """
@@ -42,17 +46,13 @@ class QuadcopterPlanar:
         x, y, dx, dy, phi, omega = s
         t1, t2 = u
 
-        Ixx = (2. * self.m * (self.r ** 2.) / 5.) + 2. * self.m * (self.l ** 2.)
-        Iyy = (2. * self.m * (self.r ** 2.) / 5.) + 2. * self.m * (self.l ** 2.)
-        Izz = (2. * self.m * (self.r ** 2.) / 5.) + 4. * self.m * (self.l ** 2.)
-
-        ds = jnp.array([
+        ds = np.array([
             dx,
             dy,
-            (-(t1 + t2) * jnp.sin(phi)) / self.m,
-            ((t1 + t2) * jnp.cos(phi)) / self.m - self.g,
+            -(t1 + t2) * jnp.sin(phi) / self.m,
+            (t1 + t2) * jnp.cos(phi) / self.m - self.g,
             omega,
-            ((t2 - t1) * self.l) / Izz
+            (t2 - t1) * self.l / self.Izz
         ])
 
         return ds

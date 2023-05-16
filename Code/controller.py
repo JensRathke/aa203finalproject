@@ -4,13 +4,68 @@ import numpy as np
 import jax
 import jax.numpy as jnp
 import time
-from functools import partial
+import cvxpy as cvx
 
 from scipy.integrate import odeint
-import cvxpy as cvx
+from scipy.optimize import minimize
+from functools import partial
 from tqdm import tqdm
 
 from quadcopter import *
+
+class PQcopter_controller_test():
+    """ Test of controller for a planar quadcopter """
+    def __init__(self, qcopter: QuadcopterPlanar, s_init):
+        """
+        Functionality
+            Initialisation of a controller for a planar quadcopter using iLQR
+
+        Parameters
+            qcopter: quadcopter to be controlled
+            s_init: initial state of the quadcopter
+        """
+        self.qcopter = qcopter
+        self.s_init = s_init                        # initial state
+        self.s_goal = np.array([0., self.qcopter.h, 0., 0., 0. , 0.])      # goal state
+        self.T = 10.  # s                           # simulation time
+        self.dt = 0.1 # s
+        self.N = int(self.T / self.dt)
+
+    def land(self):
+        cost = lambda z: self.dt * np.sum(np.square(z.reshape(int(self.N) + 1, 8)[:, -2:]))
+
+        def constraints(z):
+            states_and_controls = z.reshape(int(self.N) + 1, 8)
+            states = states_and_controls[:, :6]
+            controls = states_and_controls[:, -2:]
+            constraint_list = [states[0] - self.s_init, states[-1] - self.s_goal]
+            for i in range(int(self.N)):
+                constraint_list.append(states[i + 1] - (states[i] + self.dt * self.qcopter.dynamics(states[i], controls[i])))
+            return np.concatenate(constraint_list)
+
+
+        z_guess = np.concatenate([np.linspace(self.s_init, self.s_goal, int(self.N) + 1), np.ones((int(self.N) + 1, 2))], -1).ravel()
+        z_iterates = [z_guess]
+        print("start")
+        result = minimize(cost,
+                        z_guess,
+                        constraints={
+                            'type': 'eq',
+                            'fun': constraints
+                        },
+                        options={'maxiter': 1000},
+                        callback=lambda z: z_iterates.append(z))
+        print("end")
+        z_iterates = np.stack(z_iterates)
+        
+        t = np.linspace(0, int(self.T), int(self.N) + 1)
+        z = result.x.reshape(int(self.N) + 1, 8)
+
+        sg = np.zeros((t.size, 6))
+
+        self.qcopter.plot_trajectory(t, z, "Figures/test_controller_s")
+        # self.qcopter.plot_controls(t[0:self.N], u, "Figures/test_controller_u")
+        self.qcopter.animate(t, z, sg, "Animations/test_controller")
 
 class PQcopter_controller_iLQR():
     """ Controller for a planar quadcopter using iLQR """
@@ -32,14 +87,14 @@ class PQcopter_controller_iLQR():
         self.QN = 1e2*np.eye(self.n)                     # terminal state cost matrix
         self.s_init = s_init                        # initial state
         self.s_goal = np.array([0., self.qcopter.h, 0., 0., 0. , 0.])      # goal state
-        self.T = 30.                                # simulation time
+        self.T = 30.  # s                           # simulation time
         self.dt = 0.1 # s                           # sampling time
 
     def linearize(self, f, s, u):
         A, B = jax.jacobian(f, (0, 1))(s, u)
         return A, B
 
-    def ilqr(self, f, s_init, s_goal, N, Q, R, QN, eps = 1e-3, max_iters = 1000):
+    def ilqr_jr(self, f, s_init, s_goal, N, Q, R, QN, eps = 1e-3, max_iters = 1000):
         if max_iters <= 1:
             raise ValueError('Argument `max_iters` must be at least 1.')
         n = Q.shape[0]        # state dimension
@@ -128,6 +183,126 @@ class PQcopter_controller_iLQR():
             raise RuntimeError('iLQR did not converge!')
         return s_bar, u_bar, Y, y
 
+    def ilqr(self, f, s0, s_goal, N, Q, R, QN, eps=1e-3, max_iters=1000):
+        """Compute the iLQR set-point tracking solution.
+
+        Arguments
+        ---------
+        f : callable
+            A function describing the discrete-time dynamics, such that
+            `s[k+1] = f(s[k], u[k])`.
+        s0 : numpy.ndarray
+            The initial state (1-D).
+        s_goal : numpy.ndarray
+            The goal state (1-D).
+        N : int
+            The time horizon of the LQR cost function.
+        Q : numpy.ndarray
+            The state cost matrix (2-D).
+        R : numpy.ndarray
+            The control cost matrix (2-D).
+        QN : numpy.ndarray
+            The terminal state cost matrix (2-D).
+        eps : float, optional
+            Termination threshold for iLQR.
+        max_iters : int, optional
+            Maximum number of iLQR iterations.
+
+        Returns
+        -------
+        s_bar : numpy.ndarray
+            A 2-D array where `s_bar[k]` is the nominal state at time step `k`,
+            for `k = 0, 1, ..., N-1`
+        u_bar : numpy.ndarray
+            A 2-D array where `u_bar[k]` is the nominal control at time step `k`,
+            for `k = 0, 1, ..., N-1`
+        Y : numpy.ndarray
+            A 3-D array where `Y[k]` is the matrix gain term of the iLQR control
+            law at time step `k`, for `k = 0, 1, ..., N-1`
+        y : numpy.ndarray
+            A 2-D array where `y[k]` is the offset term of the iLQR control law
+            at time step `k`, for `k = 0, 1, ..., N-1`
+        """
+        if max_iters <= 1:
+            raise ValueError('Argument `max_iters` must be at least 1.')
+        n = Q.shape[0]        # state dimension
+        m = R.shape[0]        # control dimension
+
+        # Initialize gains `Y` and offsets `y` for the policy
+        Y = np.zeros((N, m, n))
+        y = np.zeros((N, m))
+
+        # Initialize the nominal trajectory `(s_bar, u_bar`), and the
+        # deviations `(ds, du)`
+        u_bar = np.zeros((N, m))
+        s_bar = np.zeros((N + 1, n))
+        s_bar[0] = s0
+        for k in range(N):
+            s_bar[k+1] = f(s_bar[k], u_bar[k])
+        ds = np.zeros((N + 1, n))
+        du = np.zeros((N, m))
+
+        # iLQR loop
+        converged = False
+        for i in range(max_iters):
+            # Linearize the dynamics at each step `k` of `(s_bar, u_bar)`
+            A, B = jax.vmap(self.linearize, in_axes=(None, 0, 0))(f, s_bar[:-1], u_bar)
+            A, B = np.array(A), np.array(B)
+
+            # PART (c) ############################################################
+            # INSTRUCTIONS: Update `Y`, `y`, `ds`, `du`, `s_bar`, and `u_bar`.
+            P_T = QN
+            P_k = P_T
+            p_T= q_T = QN.T@ (s_bar[-1]-s_goal)
+            p_k=p_T
+            q_k=q_T
+            r_T = R.T@ u_bar[-1]
+            r_k= r_T
+            #backward recursion
+            for j in range(N-1, -1, -1):
+                q_k = Q.T @ (s_bar[j]-s_goal)
+                r_k = R.T @ u_bar[j]
+                hxt = q_k + A[j].T @ p_k
+                hut = r_k + B[j].T @ p_k
+                Hxxt = Q + A[j].T @ P_k @ A[j]
+                Huut = R + B[j].T @ P_k @ B[j]
+                Hxut = A[j].T @ P_k @ B[j]
+
+                #K_k= -1.0*LA.pinv(Huut)@Hxut.transpose()
+                Y[j]= -1.0 * np.linalg.pinv(Huut) @ Hxut.T
+                #k_k = -1.0 * LA.pinv(Huut)@hut
+                y[j] = -1.0 * np.linalg.pinv(Huut) @ hut
+                #p_k = hxt + Hxxt@k_k
+                p_k = hxt + Hxut @ y[j]
+                #P_k = Hxxt +Hxut@K_k
+                P_k = Hxxt + Hxut @ Y[j]
+                """
+                if np.isnan(P_k).any():
+                    import ipdb; ipdb.set_trace()
+                """
+
+            #forward pass
+            #roll out
+            for k in range(N):
+                du[k] = y[k] + Y[k] @ ds[k]
+                ds[k+1] = f(s_bar[k] + ds[k], u_bar[k] + du[k]) - s_bar[k+1]
+                #s_bar[k+1] = s_bar[k+1] + ds[k+1]
+                #u_bar[k] = u_bar[k] + du[k]
+            s_bar+=ds
+            u_bar+=du
+            #######################################################################
+            #print(np.max(np.abs(du)))
+            if np.max(np.abs(du)) != 0.0 and np.max(np.abs(du)) < eps:
+                converged = True
+                print(i, np.max(np.abs(du)))
+                break
+        if not converged:
+            raise RuntimeError('iLQR did not converge!')
+            print(s_bar, u_bar)
+            print('j',j)
+            print('i',i)
+        return s_bar, u_bar, Y, y
+
     def land(self):
         # Initialize continuous-time and discretized dynamics
         f = jax.jit(self.qcopter.dynamics)
@@ -181,9 +356,9 @@ class PQcopter_controller_SCP():
         self.P = 1e3*np.eye(self.n)                     # terminal state cost matrix
         self.s_init = s_init                        # initial state
         self.s_goal = np.array([0., self.qcopter.h, 0., 0., 0. , 0.])      # goal state
-        self.T = 30.                                # simulation time
+        self.T = 300.                                # simulation time
         self.dt = 0.1 # s
-        self.u_max = 8.                           # control effort bound
+        self.u_max = 80000.                           # control effort bound
         self.eps = 5e-1
         self.ρ = 1.
         self.max_iters = 200
