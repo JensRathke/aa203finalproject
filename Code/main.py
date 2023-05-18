@@ -41,7 +41,7 @@ if __name__ == '__main__':
         print("SCP controller")
         controller = PQcopter_controller_SCP(quadcopter, s_init)
     elif select_controller == 3:
-        print("MPC controller")
+        print("MPC controller with linearization")
         controller = PQcopter_controller_MPC(quadcopter, s_init)
     else:
         print("Test controller")

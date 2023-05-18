@@ -19,7 +19,7 @@ class PQcopter_controller_MPC():
             s_init: initial state of the quadcopter
         """
         self.qcopter = qcopter
-
+        
         self.n = 6                                  # state dimension
         self.m = 2                                  # control dimension
         self.Q = np.diag(np.array([1., 1., 1., 1., 1., 1.]))   # state cost matrix
@@ -130,3 +130,29 @@ class PQcopter_controller_MPC():
         ax[1, 0].set_ylabel(r'$u_k$')
         fig.savefig('Figures/P3.2_mpc_feasibility_sim.png', bbox_inches='tight')
         plt.show()
+
+class PQcopter_controller_nlMPC():
+    """ Controller for a planar quadcopter using non-linear MPC """
+    def __init__(self, qcopter: QuadcopterPlanar, s_init):
+        """
+        Functionality
+            Initialisation of a controller for a planar quadcopter using non-linear MPC
+
+        Parameters
+            qcopter: quadcopter to be controlled
+            s_init: initial state of the quadcopter
+        """
+        self.qcopter = qcopter
+
+        self.n = 6                                  # state dimension
+        self.m = 2                                  # control dimension
+        self.Q = np.diag(np.array([1., 1., 1., 1., 1., 1.]))   # state cost matrix
+        self.R = 10 * np.eye(self.m)                     # control cost matrix
+        self.s_init = s_init                        # initial state
+        self.s_goal = np.array([0., self.qcopter.h, 0., 0., 0. , 0.])      # goal state
+        self.T = 30  # s                           # simulation time
+        self.dt = 0.1 # s                           # sampling time
+        self.N = 3                                  # rollout steps
+        self.rs = 5.0
+        self.ru = 0.5
+        self.rT = np.inf
