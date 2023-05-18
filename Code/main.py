@@ -25,11 +25,11 @@ state of the landing pad in 3D: (x, y, z, 0, 0, 0, phi, theta, psi, 0, 0, 0)
 
 if __name__ == '__main__':
 
-    quadcopter = QuadcopterPlanar(2.5, 1.0, 0.25, 0.3)
+    quadcopter = QuadcopterPlanar(2.5, 1.0, .5, 0.7)
 
-    s_init = jnp.array([2., 6., 2., 2., -np.pi / 4, -1.])
+    s_init = np.array([4., 6., 2., 2., -np.pi / 4, -1.])
 
-    select_controller = 0
+    select_controller = 1
     
     if select_controller == 1:
         controller = PQcopter_controller_iLQR(quadcopter, s_init)

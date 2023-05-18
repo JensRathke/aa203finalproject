@@ -6,6 +6,8 @@ import matplotlib.patches as mpatches
 import matplotlib.transforms as mtransforms
 import matplotlib.animation as animation
 
+filepath = "Animations/"
+
 def animate_planar_quad(filename, t, x, y, phi, x_goal, y_goal, phi_goal, l, r, h):
     """
     Based on: Spencer M. Richards
@@ -33,7 +35,7 @@ def animate_planar_quad(filename, t, x, y, phi, x_goal, y_goal, phi_goal, l, r, 
     rod_height = 0.2
     axle_height = 0.3
     axle_width = 0.2
-    prop_width = 0.4 * rod_width
+    prop_width = 0.8 * rod_width
     prop_height = 0.22
     hub_width = 2 * r
     hub_height = 2 * r
@@ -126,7 +128,8 @@ def animate_planar_quad(filename, t, x, y, phi, x_goal, y_goal, phi_goal, l, r, 
     ani = animation.FuncAnimation(fig, animate, t.size, fargs=(t, x, y, phi, x_goal, y_goal, phi_goal),
                                   interval=dt*1000, blit=True)
     
-    ani.save(filename + '.mp4', writer='ffmpeg')
+    ani.save(filepath + filename + '.mp4', writer='ffmpeg')
+    print("Saved figure as:", filepath + filename + '.mp4')
     plt.show()
 
 

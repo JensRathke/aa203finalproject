@@ -49,6 +49,32 @@ class QuadcopterPlanar:
         ds = np.array([
             dx,
             dy,
+            -(t1 + t2) * np.sin(phi) / self.m,
+            (t1 + t2) * np.cos(phi) / self.m - self.g,
+            omega,
+            (t2 - t1) * self.l / self.Izz
+        ])
+
+        return ds
+    
+    def dynamics_jnp(self, s, u):
+        """
+        Functionality
+            Quadcopter dynamics with jax numpy functions
+
+        Parameters
+            s: state (x, y, dx, dy, phi, omega)
+            u: control input (t1, t2)
+
+        Returns
+            derivative of the state with respect to time
+        """
+        x, y, dx, dy, phi, omega = s
+        t1, t2 = u
+
+        ds = jnp.array([
+            dx,
+            dy,
             -(t1 + t2) * jnp.sin(phi) / self.m,
             (t1 + t2) * jnp.cos(phi) / self.m - self.g,
             omega,
@@ -80,7 +106,7 @@ class QuadcopterPlanar:
             s: state trajectory (x, y, dx, dy, psi, omega)
             filename: name of the output file without file-extension
         """
-        plot_3x2(filename, t, s[:, 0], s[:, 1], s[:, 2], s[:, 3], s[:, 4], s[:, 5], "iLQR trajectory")
+        plot_3x2(filename, t, s[:, 0], s[:, 1], s[:, 2], s[:, 3], s[:, 4], s[:, 5], "trajectory")
 
     def plot_controls(self, t, u, filename):
         """
@@ -92,7 +118,7 @@ class QuadcopterPlanar:
             u: controls (t1, t2)
             filename: name of the output file without file-extension
         """
-        plot_1x2(filename, t, u[:, 0], u[:, 1], "iLQR controls")
+        plot_1x2(filename, t, u[:, 0], u[:, 1], "controls")
 
 class QuadcopterCubic:
     """ Cubic Quadcopter """
@@ -170,4 +196,4 @@ if __name__ == "__main__":
     print(s[:, 4])
     print(sg[:, 4])
 
-    testcopter.animate(t, s, sg, "Animations/test")
+    testcopter.animate(t, s, sg, "testcopter")

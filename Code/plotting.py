@@ -4,6 +4,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 
+filepath = "Figures/"
+
 def plot_1x2(filename, t, data00, data01, figure_title="figure", plot_titles=["", ""], xlabels=["time [s]", "time [s]"], ylabels=["", ""], fig_num = 1):
     """
     Functionality
@@ -37,7 +39,8 @@ def plot_1x2(filename, t, data00, data01, figure_title="figure", plot_titles=[""
     # Show figure
     fig.canvas.manager.set_window_title(figure_title)
     
-    plt.savefig(filename + '.png')
+    plt.savefig(filepath + filename + '.png')
+    print("Saved figure as:", filepath + filename + '.png')
     plt.show()
     plt.close(fig)
 
@@ -91,7 +94,8 @@ def plot_3x2(filename, t, data00, data01, data10, data11, data20, data21, figure
     # Show figure
     fig.canvas.manager.set_window_title(figure_title)
     
-    plt.savefig(filename + '.png')
+    plt.savefig(filepath + filename + '.png')
+    print("Saved figure as:", filepath + filename + '.png')
     plt.show()
     plt.close(fig)
 
@@ -110,7 +114,7 @@ if __name__ == "__main__":
     ylabels = ["y00", "y01", "y10", "y11", "y20", "y21"]
 
     # test plot_1x2
-    plot_1x2('Figures/test_1x2', t, d00, d01, "1x2", ["title00", "title01"], ["x00", "x01"], ["y00", "y01"], 2)
+    plot_1x2('test_1x2', t, d00, d01, "1x2", ["title00", "title01"], ["x00", "x01"], ["y00", "y01"], 2)
 
     # test plot_3x2
-    plot_3x2('Figures/test_3x2', t, d00, d01, d10, d11, d20, d21, "test figure title", plot_titles, xlabels, ylabels, 1)
+    plot_3x2('test_3x2', t, d00, d01, d10, d11, d20, d21, "test figure title", plot_titles, xlabels, ylabels, 1)

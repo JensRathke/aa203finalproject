@@ -27,11 +27,29 @@ class PQcopter_controller_test():
         self.qcopter = qcopter
         self.s_init = s_init                        # initial state
         self.s_goal = np.array([0., self.qcopter.h, 0., 0., 0. , 0.])      # goal state
-        self.T = 10.  # s                           # simulation time
+        self.T = 3.  # s                           # simulation time
         self.dt = 0.1 # s
         self.N = int(self.T / self.dt)
 
+        self.g = 9.807         # gravity (m / s**2)
+        self.m = 2.5           # mass (kg)
+        self.l = 1.0           # half-length (m)
+        self.I_zz = 1.0         # moment of inertia about the out-of-plane axis (kg * m**2)
+
     def land(self):
+        def dyn(state, control):
+            """Continuous-time dynamics of a planar quadrotor expressed as an ODE."""
+            x, y, v_x, v_y, ϕ, ω = state
+            T_1, T_2 = control
+            return np.array([
+                v_x,
+                v_y,
+                -(T_1 + T_2) * np.sin(ϕ) / self.m,
+                (T_1 + T_2) * np.cos(ϕ) / self.m - self.g,
+                ω,
+                (T_2 - T_1) * self.l / self.I_zz,
+            ])
+        
         cost = lambda z: self.dt * np.sum(np.square(z.reshape(int(self.N) + 1, 8)[:, -2:]))
 
         def constraints(z):
@@ -63,9 +81,9 @@ class PQcopter_controller_test():
 
         sg = np.zeros((t.size, 6))
 
-        self.qcopter.plot_trajectory(t, z, "Figures/test_controller_s")
+        self.qcopter.plot_trajectory(t, z, "test_controller_s")
         # self.qcopter.plot_controls(t[0:self.N], u, "Figures/test_controller_u")
-        self.qcopter.animate(t, z, sg, "Animations/test_controller")
+        self.qcopter.animate(t, z, sg, "test_controller")
 
 class PQcopter_controller_iLQR():
     """ Controller for a planar quadcopter using iLQR """
@@ -332,9 +350,9 @@ class PQcopter_controller_iLQR():
         sg = np.zeros((t.size, 6))
         sg[:, 1] = self.qcopter.h
 
-        self.qcopter.plot_trajectory(t, s, "Figures/test_iLQR_s")
-        self.qcopter.plot_controls(t[0:N], u, "Figures/test_iLQR_u")
-        self.qcopter.animate(t, s, sg, "Animations/test_iLQR")
+        self.qcopter.plot_trajectory(t, s, "test_iLQR_s")
+        self.qcopter.plot_controls(t[0:N], u, "test_iLQR_u")
+        self.qcopter.animate(t, s, sg, "test_iLQR")
 
 class PQcopter_controller_SCP():
     """ Controller for a planar quadcopter using SCP"""
@@ -580,9 +598,9 @@ class PQcopter_controller_SCP():
         sg = np.zeros((t.size, 6))
         sg[:, 1] = self.qcopter.h
 
-        self.qcopter.plot_trajectory(t, s, "Figures/test_SCP_s")
-        self.qcopter.plot_controls(t[0:N], u, "Figures/test_SCP_u")
-        self.qcopter.animate(t, s, sg, "Animations/test_SCP")
+        self.qcopter.plot_trajectory(t, s, "test_SCP_s")
+        self.qcopter.plot_controls(t[0:N], u, "test_SCP_u")
+        self.qcopter.animate(t, s, sg, "test_SCP")
 
 
 if __name__ == "__main__":
