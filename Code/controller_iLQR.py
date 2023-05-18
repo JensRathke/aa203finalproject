@@ -28,8 +28,8 @@ class PQcopter_controller_iLQR():
 
         self.n = 6                                  # state dimension
         self.m = 2                                  # control dimension
-        self.Q = np.diag(np.array([10., 10., 2., 2., 10., 2.]))   # state cost matrix
-        self.R = 1e-2*np.eye(self.m)                     # control cost matrix
+        self.Q = np.diag(np.array([2., 2., 1., 1., 2., 1.]))   # state cost matrix
+        self.R = 1e2*np.eye(self.m)                     # control cost matrix
         self.QN = 1e2*np.eye(self.n)                     # terminal state cost matrix
         self.s_init = s_init                        # initial state
         self.s_goal = np.array([0., self.qcopter.h, 0., 0., 0. , 0.])      # goal state
@@ -38,6 +38,8 @@ class PQcopter_controller_iLQR():
 
     def linearize(self, f, s, u):
         A, B = jax.jacobian(f, (0, 1))(s, u)
+        print("A", A)
+        print("B", B)
         return A, B
 
     def ilqr(self, f, s_init, s_goal, N, Q, R, QN, eps = 1e-3, max_iters = 1000):

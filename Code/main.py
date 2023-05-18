@@ -8,6 +8,7 @@ from spacecraft import *
 from controller_test import *
 from controller_iLQR import *
 from controller_SCP import *
+from controller_MPC import *
 from plotting import *
 from animation import *
 
@@ -31,7 +32,7 @@ if __name__ == '__main__':
 
     s_init = np.array([4., 6., 2., 2., -np.pi / 4, -1.])
 
-    select_controller = 1
+    select_controller = 3
     
     if select_controller == 1:
         print("iLQR controller")
@@ -39,6 +40,9 @@ if __name__ == '__main__':
     elif select_controller == 2:
         print("SCP controller")
         controller = PQcopter_controller_SCP(quadcopter, s_init)
+    elif select_controller == 3:
+        print("MPC controller")
+        controller = PQcopter_controller_MPC(quadcopter, s_init)
     else:
         print("Test controller")
         controller = PQcopter_controller_test(quadcopter, s_init)

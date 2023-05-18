@@ -35,7 +35,7 @@ class QuadcopterPlanar:
     def dynamics(self, s, u):
         """
         Functionality
-            Quadcopter dynamics
+            Continuous-time quadcopter dynamics
 
         Parameters
             s: state (x, y, dx, dy, phi, omega)
@@ -45,15 +45,16 @@ class QuadcopterPlanar:
             derivative of the state with respect to time
         """
         x, y, dx, dy, phi, omega = s
-        t1, t2 = u
+        # t1, t2 = u
+        u1, u2 = u
 
         ds = np.array([
             dx,
             dy,
-            -(t1 + t2) * np.sin(phi) / self.m,
-            (t1 + t2) * np.cos(phi) / self.m - self.g,
+            u1 * np.cos(phi) / self.m - self.g, #(t1 + t2) * np.cos(phi) / self.m - self.g,
+            -u1 * np.sin(phi) / self.m, #-(t1 + t2) * np.sin(phi) / self.m,
             omega,
-            (t1 - t2) * self.l / self.Izz
+            u2 / self.Izz #(t1 - t2) * self.l / (2 * self.Izz)
         ])
 
         return ds
@@ -61,7 +62,7 @@ class QuadcopterPlanar:
     def dynamics_jnp(self, s, u):
         """
         Functionality
-            Quadcopter dynamics with jax numpy functions
+            Continuous-time quadcopter dynamics
 
         Parameters
             s: state (x, y, dx, dy, phi, omega)
@@ -71,18 +72,46 @@ class QuadcopterPlanar:
             derivative of the state with respect to time
         """
         x, y, dx, dy, phi, omega = s
-        t1, t2 = u
+        # t1, t2 = u
+        u1, u2 = u
 
         ds = jnp.array([
             dx,
             dy,
-            -(t1 + t2) * jnp.sin(phi) / self.m,
-            (t1 + t2) * jnp.cos(phi) / self.m - self.g,
+            u1 * jnp.cos(phi) / self.m - self.g, #(t1 + t2) * np.cos(phi) / self.m - self.g,
+            -u1 * jnp.sin(phi) / self.m, #-(t1 + t2) * np.sin(phi) / self.m,
             omega,
-            (t1 - t2) * self.l / self.Izz
+            u2 / self.Izz #(t1 - t2) * self.l / (2 * self.Izz)
         ])
 
         return ds
+    
+    def discrete_dynamics(self, s, u, dt = 0.1):
+        """
+        Functionality
+            Discrete-time quadcopter dynamics
+
+        Parameters
+            s: state (x, y, dx, dy, phi, omega)
+            u: control input (t1, t2)
+
+        Returns
+            derivative of the state with respect to time
+        """
+        x, y, dx, dy, phi, omega = s
+        # t1, t2 = u
+        u1, u2 = u
+
+        ds = np.array([
+            dx,
+            dy,
+            u1 * np.cos(phi) / self.m - self.g, #(t1 + t2) * np.cos(phi) / self.m - self.g,
+            -u1 * np.sin(phi) / self.m, #-(t1 + t2) * np.sin(phi) / self.m,
+            omega,
+            u2 / self.Izz #(t1 - t2) * self.l / (2 * self.Izz)
+        ])
+
+        return s + ds * dt
 
     def animate(self, t, s, sg, filename):
         """

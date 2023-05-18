@@ -97,7 +97,7 @@ def animate_planar_quad(filename, t, x, y, phi, x_goal, y_goal, phi_goal, l, r, 
                              3 * l, 0.1,
                              facecolor='tab:red', edgecolor='k')
     pad_centre = mpatches.Ellipse((0,
-                                   0),
+                                   com_height),
                                   0.4, 0.4,
                                   facecolor='tab:red', edgecolor='k')
     patches_pad = (pad, pad_centre)

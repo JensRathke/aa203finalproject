@@ -57,6 +57,9 @@ class PQcopter_controller_SCP():
 
         A, B  = jax.jacobian(f,(0,1))(s,u)
         c = f(s,u) - A @ s - B @ u
+        print("A", A)
+        print("B", B)
+        print("c", c)
         return A, B, c
 
     def discretize(self,f, dt):
