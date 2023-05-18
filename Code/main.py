@@ -5,7 +5,9 @@ import numpy as np
 from simulation import *
 from quadcopter import *
 from spacecraft import *
-from controller import *
+from controller_test import *
+from controller_iLQR import *
+from controller_SCP import *
 from plotting import *
 from animation import *
 
@@ -32,11 +34,13 @@ if __name__ == '__main__':
     select_controller = 1
     
     if select_controller == 1:
+        print("iLQR controller")
         controller = PQcopter_controller_iLQR(quadcopter, s_init)
     elif select_controller == 2:
+        print("SCP controller")
         controller = PQcopter_controller_SCP(quadcopter, s_init)
     else:
-        print("Test Controller")
+        print("Test controller")
         controller = PQcopter_controller_test(quadcopter, s_init)
 
     controller.land()

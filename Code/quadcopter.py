@@ -29,7 +29,8 @@ class QuadcopterPlanar:
 
         self.Ixx = (2. * self.m * (self.r ** 2.) / 5.) + 2. * self.m * (self.l ** 2.)
         self.Iyy = (2. * self.m * (self.r ** 2.) / 5.) + 2. * self.m * (self.l ** 2.)
-        self.Izz = 1.0 # (2. * self.m * (self.r ** 2.) / 5.) + 4. * self.m * (self.l ** 2.)
+        self.Izz = (2. * self.m * (self.r ** 2.) / 5.) + 4. * self.m * (self.l ** 2.)
+        print("Izz", self.Izz)
 
     def dynamics(self, s, u):
         """
@@ -52,7 +53,7 @@ class QuadcopterPlanar:
             -(t1 + t2) * np.sin(phi) / self.m,
             (t1 + t2) * np.cos(phi) / self.m - self.g,
             omega,
-            (t2 - t1) * self.l / self.Izz
+            (t1 - t2) * self.l / self.Izz
         ])
 
         return ds
@@ -78,7 +79,7 @@ class QuadcopterPlanar:
             -(t1 + t2) * jnp.sin(phi) / self.m,
             (t1 + t2) * jnp.cos(phi) / self.m - self.g,
             omega,
-            (t2 - t1) * self.l / self.Izz
+            (t1 - t2) * self.l / self.Izz
         ])
 
         return ds
@@ -96,7 +97,7 @@ class QuadcopterPlanar:
         """
         animate_planar_quad(filename, t, s[:, 0], s[:, 1], s[:, 4], sg[:, 0], sg[:, 1], sg[:, 4], self.l, self.r, self.h)
 
-    def plot_trajectory(self, t, s, filename):
+    def plot_trajectory(self, t, s, filename, plot_titles=["", "", "", "", "", ""], y_labels=["", "", "", "", "", ""]):
         """
         Functionality
             Plot a quadcopter trajectory
@@ -106,9 +107,9 @@ class QuadcopterPlanar:
             s: state trajectory (x, y, dx, dy, psi, omega)
             filename: name of the output file without file-extension
         """
-        plot_3x2(filename, t, s[:, 0], s[:, 1], s[:, 2], s[:, 3], s[:, 4], s[:, 5], "trajectory")
+        plot_3x2(filename, t, s[:, 0], s[:, 1], s[:, 2], s[:, 3], s[:, 4], s[:, 5], "trajectory", plot_titles=plot_titles, ylabels=y_labels)
 
-    def plot_controls(self, t, u, filename):
+    def plot_controls(self, t, u, filename, plot_titles=["", ""], y_labels=["", ""]):
         """
         Functionality
             Plot a quadcopter trajectory
@@ -118,11 +119,11 @@ class QuadcopterPlanar:
             u: controls (t1, t2)
             filename: name of the output file without file-extension
         """
-        plot_1x2(filename, t, u[:, 0], u[:, 1], "controls")
+        plot_1x2(filename, t, u[:, 0], u[:, 1], "controls", plot_titles=plot_titles, ylabels=y_labels)
 
 class QuadcopterCubic:
     """ Cubic Quadcopter """
-    def __init__(self, mass = 450, len_rotor_arm = 4.6, cabin_radius = 1.5):
+    def __init__(self, mass = 450, len_rotor_arm = 3.6, cabin_radius = 1.2, h_centre_of_mass = 1.5):
         """
         Functionality
             Quadcopter class
@@ -132,10 +133,15 @@ class QuadcopterCubic:
             len_rotor_arm: length of a rotor arm (default 4.6 m)
             cabin_radius: radius of the cabin (default 1.5 m)
         """
-        self.m = mass
-        self.l = len_rotor_arm
-        self.r = cabin_radius
         self.g = 9.81 # m/s²
+        self.m = mass # kg
+        self.l = len_rotor_arm # m
+        self.r = cabin_radius # m
+        self.h = h_centre_of_mass # m
+
+        self.Ixx = (2. * self.m * (self.r ** 2.) / 5.) + 2. * self.m * (self.l ** 2.)
+        self.Iyy = (2. * self.m * (self.r ** 2.) / 5.) + 2. * self.m * (self.l ** 2.)
+        self.Izz = 1.0 # (2. * self.m * (self.r ** 2.) / 5.) + 4. * self.m * (self.l ** 2.)
 
     def dynamics(self, s, u):
         """
