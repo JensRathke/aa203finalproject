@@ -39,7 +39,7 @@ class QuadcopterPlanar:
 
         Parameters
             s: state (x, y, dx, dy, phi, omega)
-            u: control input (t1, t2)
+            u: control input (u1, u2)
 
         Returns
             derivative of the state with respect to time
@@ -66,7 +66,7 @@ class QuadcopterPlanar:
 
         Parameters
             s: state (x, y, dx, dy, phi, omega)
-            u: control input (t1, t2)
+            u: control input (u1, u2)
 
         Returns
             derivative of the state with respect to time
@@ -93,7 +93,7 @@ class QuadcopterPlanar:
 
         Parameters
             s: state (x, y, dx, dy, phi, omega)
-            u: control input (t1, t2)
+            u: control input (u1, u2)
 
         Returns
             derivative of the state with respect to time
@@ -107,6 +107,33 @@ class QuadcopterPlanar:
             dy,
             u1 * np.cos(phi) / self.m - self.g, #(t1 + t2) * np.cos(phi) / self.m - self.g,
             -u1 * np.sin(phi) / self.m, #-(t1 + t2) * np.sin(phi) / self.m,
+            omega,
+            u2 / self.Izz #(t1 - t2) * self.l / (2 * self.Izz)
+        ])
+
+        return s + ds * dt
+    
+    def discrete_dynamics_jnp(self, s, u, dt = 0.1):
+        """
+        Functionality
+            Discrete-time quadcopter dynamics
+
+        Parameters
+            s: state (x, y, dx, dy, phi, omega)
+            u: control input (u1, u2)
+
+        Returns
+            derivative of the state with respect to time
+        """
+        x, y, dx, dy, phi, omega = s
+        # t1, t2 = u
+        u1, u2 = u
+
+        ds = jnp.array([
+            dx,
+            dy,
+            u1 * jnp.cos(phi) / self.m - self.g, #(t1 + t2) * np.cos(phi) / self.m - self.g,
+            -u1 * jnp.sin(phi) / self.m, #-(t1 + t2) * np.sin(phi) / self.m,
             omega,
             u2 / self.Izz #(t1 - t2) * self.l / (2 * self.Izz)
         ])
@@ -126,10 +153,10 @@ class QuadcopterPlanar:
         """
         animate_planar_quad(filename, t, s[:, 0], s[:, 1], s[:, 4], sg[:, 0], sg[:, 1], sg[:, 4], self.l, self.r, self.h)
 
-    def plot_trajectory(self, t, s, filename, plot_titles=["", "", "", "", "", ""], y_labels=["", "", "", "", "", ""]):
+    def plot_states(self, t, s, filename, plot_titles=["", "", "", "", "", ""], y_labels=["", "", "", "", "", ""]):
         """
         Functionality
-            Plot a quadcopter trajectory
+            Plot quadcopter states
 
         Parameters
             t: time
@@ -149,6 +176,18 @@ class QuadcopterPlanar:
             filename: name of the output file without file-extension
         """
         plot_1x2(filename, t, u[:, 0], u[:, 1], "controls", plot_titles=plot_titles, ylabels=y_labels)
+
+    def plot_trajectory(self, t, s, filename):
+        """
+        Functionality
+            Plot a quadcopter trajectory
+
+        Parameters
+            t: time
+            s: state trajectory (x, y, dx, dy, psi, omega)
+            filename: name of the output file without file-extension
+        """
+        plot_trajectory(filename, s[:, 0], s[:, 1], "trajectory")
 
 class QuadcopterCubic:
     """ Cubic Quadcopter """

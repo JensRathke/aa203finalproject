@@ -37,19 +37,7 @@ class PQcopter_controller_test():
         self.I_zz = 1.0         # moment of inertia about the out-of-plane axis (kg * m**2)
 
     def land(self):
-        def dyn(state, control):
-            """Continuous-time dynamics of a planar quadrotor expressed as an ODE."""
-            x, y, v_x, v_y, ϕ, ω = state
-            T_1, T_2 = control
-            return np.array([
-                v_x,
-                v_y,
-                -(T_1 + T_2) * np.sin(ϕ) / self.m,
-                (T_1 + T_2) * np.cos(ϕ) / self.m - self.g,
-                ω,
-                (T_2 - T_1) * self.l / self.I_zz,
-            ])
-        
+              
         cost = lambda z: self.dt * np.sum(np.square(z.reshape(int(self.N) + 1, 8)[:, -2:]))
 
         def constraints(z):
@@ -81,7 +69,7 @@ class PQcopter_controller_test():
 
         sg = np.zeros((t.size, 6))
 
-        self.qcopter.plot_trajectory(t, z, "test_controller_s", ["x", "y", "dx", "dy", "theta", "omega"])
+        self.qcopter.plot_states(t, z, "test_controller_s", ["x", "y", "dx", "dy", "theta", "omega"])
         # self.qcopter.plot_controls(t[0:self.N], u, "test_controller_u")
         self.qcopter.animate(t, z, sg, "test_controller")
 

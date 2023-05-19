@@ -38,8 +38,6 @@ class PQcopter_controller_iLQR():
 
     def linearize(self, f, s, u):
         A, B = jax.jacobian(f, (0, 1))(s, u)
-        print("A", A)
-        print("B", B)
         return A, B
 
     def ilqr(self, f, s_init, s_goal, N, Q, R, QN, eps = 1e-3, max_iters = 1000):
@@ -66,6 +64,7 @@ class PQcopter_controller_iLQR():
         converged = False
         for iteration in range(max_iters):
             # Linearize the dynamics at each step `k` of `(s_bar, u_bar)`
+            print("s_bar[:-1], u_bar", s_bar[:-1], u_bar)
             A, B = jax.vmap(self.linearize, in_axes=(None, 0, 0))(f, s_bar[:-1], u_bar)
             A, B = np.array(A), np.array(B)
 
@@ -279,7 +278,7 @@ class PQcopter_controller_iLQR():
 
         sg = np.zeros((t.size, 6))
 
-        self.qcopter.plot_trajectory(t, s, "test_iLQR_s", ["x", "y", "dx", "dy", "theta", "omega"])
+        self.qcopter.plot_states(t, s, "test_iLQR_s", ["x", "y", "dx", "dy", "theta", "omega"])
         self.qcopter.plot_controls(t[0:N], u, "test_iLQR_u", ["T1", "T2"])
         self.qcopter.animate(t, s, sg, "test_iLQR")
 

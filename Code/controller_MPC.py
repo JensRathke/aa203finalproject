@@ -2,10 +2,14 @@
 
 import numpy as np
 import cvxpy as cvx
+import jax
+import jax.numpy as jnp
+import matplotlib.pyplot as plt
+import controller_tools as ct
 
 from scipy.linalg import solve_discrete_are
-
 from quadcopter import *
+from plotting import *
 
 class PQcopter_controller_MPC():
     """ Controller for a planar quadcopter using MPC """
@@ -18,19 +22,20 @@ class PQcopter_controller_MPC():
             qcopter: quadcopter to be controlled
             s_init: initial state of the quadcopter
         """
-        self.qcopter = qcopter
+        self.qc = qcopter
         
         self.n = 6                                  # state dimension
         self.m = 2                                  # control dimension
-        self.Q = np.diag(np.array([1., 1., 1., 1., 1., 1.]))   # state cost matrix
+        self.Q = np.diag(np.array([10., 10., 1., 1., 10., 1.]))   # state cost matrix
         self.R = 10 * np.eye(self.m)                     # control cost matrix
         self.s_init = s_init                        # initial state
-        self.s_goal = np.array([0., self.qcopter.h, 0., 0., 0. , 0.])      # goal state
-        self.T = 30  # s                           # simulation time
+        self.s_goal = np.array([0., self.qc.h, 0., 0., 0. , 0.])      # goal state
+        self.T = 30 # s                             # simulation time
         self.dt = 0.1 # s                           # sampling time
+        self.K = int(self.T / self.dt) + 1          # number of steps
         self.N = 3                                  # rollout steps
         self.rs = 5.0
-        self.ru = 0.5
+        self.ru = 0.1
         self.rT = np.inf
 
     def linearize_penalize(self, f, s, u):
@@ -52,14 +57,15 @@ class PQcopter_controller_MPC():
         for k in range(N + 1):
             if k == 0:
                 # initial condition
+                print(x0)
                 constraints.append(x_cvx[k] == x0)
 
             if k == N:
                 # terminal cost
-                costs.append(cvx.quad_form(x_cvx[k], P))
+                costs.append(cvx.quad_form(x_cvx[k] - self.s_goal, P))
 
                 # terminal contraints
-                constraints.append(cvx.norm(x_cvx[k], 'inf') <= rf)
+                constraints.append(cvx.norm(x_cvx[k] - self.s_goal, 'inf') <= rf)
 
             if k <= N and k > 0:
                 # dynamics constraint
@@ -67,11 +73,11 @@ class PQcopter_controller_MPC():
 
             if k < N:
                 # stage cost
-                costs.append(cvx.quad_form(x_cvx[k], Q))
+                costs.append(cvx.quad_form(x_cvx[k] - self.s_goal, Q))
                 costs.append(cvx.quad_form(u_cvx[k], R))
 
                 # state contraints
-                constraints.append(cvx.norm(x_cvx[k], 'inf') <= rx)
+                # constraints.append(cvx.norm(x_cvx[k] - x_cvx[k-1], 'inf') <= rx)
 
                 # control contraints
                 constraints.append(cvx.norm(u_cvx[k], 'inf') <= ru)
@@ -90,46 +96,46 @@ class PQcopter_controller_MPC():
 
     
     def land(self):
-        Ps = (np.eye(self.n), np.zeros((self.n, self.n)))
-        titles = (r'$P = I$', r'$P = P_\mathrm{DARE}$')
-        x0s = (self.s_init, np.array([0., 10., 0., 0., 0. , 0.]))
+        t_line = np.arange(0., self.T, 1)
 
-        fig, ax = plt.subplots(2, len(Ps), dpi=150, figsize=(10, 8),
-                            sharex='row', sharey='row')
-        
-        print("Ps", Ps)
-        print("titles", titles)
-        print("x0s", x0s)
-        print("T", self.T)
+        x = np.copy(self.s_init)
+        x_mpc = np.zeros((self.T, self.N + 1, self.n))
+        x_mpc[0, 0] = self.s_init
+        u_mpc = np.zeros((self.T, self.N, self.m))
 
-        for i, (P, title) in enumerate(zip(Ps, titles)):
-            for x0 in x0s:
-                x = np.copy(x0)
-                x_mpc = np.zeros((self.T, self.N + 1, self.n))
-                u_mpc = np.zeros((self.T, self.N, self.m))
-                for t in range(1, self.T):
-                    if P[0, 0] == 0:
-                        A, B, P = self.linearize_penalize(self.qcopter.dynamics_jnp, x_mpc[t-1, 0], u_mpc[t-1, 0])
-                    else:
-                        A, B, _ = self.linearize_penalize(self.qcopter.dynamics_jnp, x_mpc[t-1, 0], u_mpc[t-1, 0])
+        P = np.eye(self.n)
 
-                    x_mpc[t], u_mpc[t], status = self.mpc_rollout(x, A, B, P, self.Q, self.R, self.N, self.rs, self.ru, self.rT)
-                    if status == 'infeasible':
-                        x_mpc = x_mpc[:t]
-                        u_mpc = u_mpc[:t]
-                        break
-                    print(x_mpc)
-                    x = A@x + B@u_mpc[t, 0, :]
-                    ax[0, i].plot(x_mpc[t, :, 0], x_mpc[t, :, 1], '--*', color='k')
-                ax[0, i].plot(x_mpc[:, 0, 0], x_mpc[:, 0, 1], '-o')
-                ax[1, i].plot(u_mpc[:, 0], '-o')
-            ax[0, i].set_title(title)
-            ax[0, i].set_xlabel(r'$x_{k,1}$')
-            ax[1, i].set_xlabel(r'$k$')
-        ax[0, 0].set_ylabel(r'$x_{k,2}$')
-        ax[1, 0].set_ylabel(r'$u_k$')
-        fig.savefig('Figures/P3.2_mpc_feasibility_sim.png', bbox_inches='tight')
-        plt.show()
+        # Initialize continuous-time and discretized dynamics
+        f = jax.jit(self.qc.dynamics_jnp)
+        fd = jax.jit(lambda s, u, dt=self.dt: s + dt*f(s, u))
+
+
+
+        for t in range(1, self.T):
+            # A, B, _ = self.linearize_penalize(self.qc.dynamics_jnp, x_mpc[t-1, 0], u_mpc[t-1, 0])
+
+            A, B = jax.vmap(ct.linearize, in_axes=(None, 0, 0))(f, x_mpc[t-1, :-1], u_mpc[t-1])
+            A, B = np.array(A[0]), np.array(B[0])
+
+            x_mpc[t], u_mpc[t], status = self.mpc_rollout(x, A, B, P, self.Q, self.R, self.N, self.rs, self.ru, self.rT)
+            print(x_mpc[t], u_mpc[t], status)
+            if status == 'infeasible':
+                x_mpc = x_mpc[:t]
+                u_mpc = u_mpc[:t]
+                break
+            x = A@x + B@u_mpc[t, 0, :]
+
+        x_values = np.zeros((x_mpc.shape[0], self.N + 1))
+        y_values = np.zeros((x_mpc.shape[0], self.N + 1))
+
+        for index in range(x_mpc.shape[0]):
+            x_values[index] = x_mpc[index, :, 0]
+            y_values[index] = x_mpc[index, :, 1]
+
+        print(x_mpc)
+
+        self.qc.animate(t_line, x_mpc[:, 0], x_mpc[:, 0], "test_MPC")
+        plot_trajectory("test_MPC_traj", x_values, y_values)
 
 class PQcopter_controller_nlMPC():
     """ Controller for a planar quadcopter using non-linear MPC """

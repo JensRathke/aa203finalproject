@@ -260,7 +260,7 @@ class PQcopter_controller_SCP():
         sg = np.zeros((t.size, 6))
         sg[:, 1] = self.qcopter.h
 
-        self.qcopter.plot_trajectory(t, s, "test_SCP_s", ["x", "y", "dx", "dy", "theta", "omega"])
+        self.qcopter.plot_states(t, s, "test_SCP_s", ["x", "y", "dx", "dy", "theta", "omega"])
         self.qcopter.plot_controls(t[0:N], u, "test_SCP_u", ["T1", "T2"])
         self.qcopter.animate(t, s, sg, "test_SCP")
 

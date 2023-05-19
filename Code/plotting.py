@@ -14,8 +14,8 @@ def plot_1x2(filename, t, data00, data01, figure_title="figure", plot_titles=[""
     Parameters
         filename: name and relative directory of the output file without file extention (e.g.: "dir/filename") 
         t: array of size N with the sequence of time stamps
-        data00: array of size N with the data for plot 0, 0
-        data01: array of size N with the data for plot 0, 1
+        data00: array of size N or n x N with the data for plot 0, 0
+        data01: array of size N or n x N with the data for plot 0, 1
         figure_title: title of the complete figure
         plot_titles: array with titles of the individual plots
         xlabels: array with labels for the individual plots
@@ -28,17 +28,26 @@ def plot_1x2(filename, t, data00, data01, figure_title="figure", plot_titles=[""
     # Plot data
     fig.suptitle(figure_title)
 
-    axs[0].plot(t, data00)
+    if data00.ndim == 1:
+        axs[0].plot(t, data00)
+    else:
+        for i in range(data00.shape[0]):
+            axs[0].plot(t, data00[i])
+
     axs[0].title.set_text(plot_titles[0])
     axs[0].set(xlabel=xlabels[0], ylabel=ylabels[0])
 
-    axs[1].plot(t, data01)
+    if data01.ndim == 1:
+        axs[1].plot(t, data01)
+    else:
+        for i in range(data01.shape[0]):
+            axs[1].plot(t, data01[i])
     axs[1].title.set_text(plot_titles[1])
     axs[1].set(xlabel=xlabels[1], ylabel=ylabels[1])
 
-    # Show figure
     fig.canvas.manager.set_window_title(figure_title)
     
+    # Save figure
     plt.savefig(filepath + filename + '.png')
     print("Saved figure as:", filepath + filename + '.png')
     plt.show()
@@ -91,9 +100,47 @@ def plot_3x2(filename, t, data00, data01, data10, data11, data20, data21, figure
     axs[2, 1].title.set_text(plot_titles[5])
     axs[2, 1].set(xlabel=xlabels[5], ylabel=ylabels[5])
 
-    # Show figure
     fig.canvas.manager.set_window_title(figure_title)
     
+    # Save figure
+    plt.savefig(filepath + filename + '.png')
+    print("Saved figure as:", filepath + filename + '.png')
+    plt.show()
+    plt.close(fig)
+
+def plot_trajectory(filename, x, y, figure_title="figure", xlabel="x [m]", ylabel="y [m]", fig_num = 1):
+    """
+    Functionality
+        Creates 2 plots in 1 (stacked) by 2 (next to each other) shape
+    
+    Parameters
+        filename: name and relative directory of the output file without file extention (e.g.: "dir/filename") 
+        x: array of size N with the data for plot 0, 0
+        y: array of size N with the data for plot 0, 1
+        figure_title: title of the complete figure
+        xlabel: label for the x-axis
+        ylabel: label for the y-axis
+        fig_num: number of the figure
+    """
+    # Create figure
+    fig, axs = plt.subplots(1, 1, constrained_layout=True, num=fig_num)
+
+    # Plot data
+    fig.suptitle(figure_title)
+
+    if x.ndim == 1 and y.ndim == 1:
+        axs.plot(x, y)
+    elif x.ndim == y.ndim:
+        for i in range(x.shape[0]):
+            axs.plot(x[i], y[i])
+    else:
+        print("Error: x and y dims must be equal.")
+
+    axs.set(xlabel=xlabel, ylabel=ylabel)
+
+    fig.canvas.manager.set_window_title(figure_title)
+    
+    # Show figure
     plt.savefig(filepath + filename + '.png')
     print("Saved figure as:", filepath + filename + '.png')
     plt.show()
@@ -102,8 +149,8 @@ def plot_3x2(filename, t, data00, data01, data10, data11, data20, data21, figure
 
 if __name__ == "__main__":
     t = np.linspace(0, 10, 101)
-    d00 = t
-    d01 = -t
+    d00 = np.tan(t)
+    d01 = -np.tan(t)
     d10 = np.sin(t)
     d11 = np.cos(t)
     d20 = -np.sin(t)
@@ -114,7 +161,10 @@ if __name__ == "__main__":
     ylabels = ["y00", "y01", "y10", "y11", "y20", "y21"]
 
     # test plot_1x2
-    plot_1x2('test_1x2', t, d00, d01, "1x2", ["title00", "title01"], ["x00", "x01"], ["y00", "y01"], 2)
+    plot_1x2('test_1x2', t, np.array((d00, d10, d11)), np.array((d01, d20, d21)), "1x2", ["title00", "title01"], ["x00", "x01"], ["y00", "y01"], 2)
 
     # test plot_3x2
     plot_3x2('test_3x2', t, d00, d01, d10, d11, d20, d21, "test figure title", plot_titles, xlabels, ylabels, 1)
+
+    # test plot trajectory
+    plot_trajectory('test_traj', np.array((d10, d11)), np.array((d00, d10)), "test figure title", "x00", "y00", 1)
