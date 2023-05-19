@@ -109,8 +109,6 @@ class PQcopter_controller_MPC():
         f = jax.jit(self.qc.dynamics_jnp)
         fd = jax.jit(lambda s, u, dt=self.dt: s + dt*f(s, u))
 
-
-
         for t in range(1, self.T):
             # A, B, _ = self.linearize_penalize(self.qc.dynamics_jnp, x_mpc[t-1, 0], u_mpc[t-1, 0])
 
@@ -137,28 +135,29 @@ class PQcopter_controller_MPC():
         self.qc.animate(t_line, x_mpc[:, 0], x_mpc[:, 0], "test_MPC")
         plot_trajectory("test_MPC_traj", x_values, y_values)
 
-class PQcopter_controller_nlMPC():
+class PQC_controller_nlMPC():
     """ Controller for a planar quadcopter using non-linear MPC """
-    def __init__(self, qcopter: QuadcopterPlanar, s_init):
+    def __init__(self, quadcopter: QuadcopterPlanar, s_init):
         """
         Functionality
             Initialisation of a controller for a planar quadcopter using non-linear MPC
 
         Parameters
-            qcopter: quadcopter to be controlled
+            quadcopter: quadcopter to be controlled
             s_init: initial state of the quadcopter
         """
-        self.qcopter = qcopter
-
         self.n = 6                                  # state dimension
         self.m = 2                                  # control dimension
         self.Q = np.diag(np.array([1., 1., 1., 1., 1., 1.]))   # state cost matrix
-        self.R = 10 * np.eye(self.m)                     # control cost matrix
+        self.R = 10 * np.eye(self.m)                # control cost matrix
         self.s_init = s_init                        # initial state
         self.s_goal = np.array([0., self.qcopter.h, 0., 0., 0. , 0.])      # goal state
-        self.T = 30  # s                           # simulation time
+        self.T = 30  # s                            # simulation time
         self.dt = 0.1 # s                           # sampling time
+        self.K = int(self.T / self.dt) + 1          # number of steps
         self.N = 3                                  # rollout steps
-        self.rs = 5.0
-        self.ru = 0.5
-        self.rT = np.inf
+
+        self.qc = quadcopter
+        self.dynamics = ct.RK4Integrator(self.qc.dynamics_jnp, self.dt)
+
+        
