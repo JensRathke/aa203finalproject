@@ -51,8 +51,8 @@ class QuadcopterPlanar:
         ds = np.array([
             dx,
             dy,
-            u1 * np.cos(phi) / self.m - self.g, #(t1 + t2) * np.cos(phi) / self.m - self.g,
             -u1 * np.sin(phi) / self.m, #-(t1 + t2) * np.sin(phi) / self.m,
+            u1 * np.cos(phi) / self.m - self.g, #(t1 + t2) * np.cos(phi) / self.m - self.g,
             omega,
             u2 / self.Izz #(t1 - t2) * self.l / (2 * self.Izz)
         ])
@@ -78,8 +78,8 @@ class QuadcopterPlanar:
         ds = jnp.array([
             dx,
             dy,
-            u1 * jnp.cos(phi) / self.m - self.g, #(t1 + t2) * np.cos(phi) / self.m - self.g,
-            -u1 * jnp.sin(phi) / self.m, #-(t1 + t2) * np.sin(phi) / self.m,
+            -u1 * jnp.sin(phi) / self.m, #-(t1 + t2) * jnp.sin(phi) / self.m,
+            u1 * jnp.cos(phi) / self.m - self.g, #(t1 + t2) * jnp.cos(phi) / self.m - self.g,
             omega,
             u2 / self.Izz #(t1 - t2) * self.l / (2 * self.Izz)
         ])
@@ -105,8 +105,8 @@ class QuadcopterPlanar:
         ds = np.array([
             dx,
             dy,
-            u1 * np.cos(phi) / self.m - self.g, #(t1 + t2) * np.cos(phi) / self.m - self.g,
             -u1 * np.sin(phi) / self.m, #-(t1 + t2) * np.sin(phi) / self.m,
+            u1 * np.cos(phi) / self.m - self.g, #(t1 + t2) * np.cos(phi) / self.m - self.g,
             omega,
             u2 / self.Izz #(t1 - t2) * self.l / (2 * self.Izz)
         ])
@@ -132,8 +132,8 @@ class QuadcopterPlanar:
         ds = jnp.array([
             dx,
             dy,
-            u1 * jnp.cos(phi) / self.m - self.g, #(t1 + t2) * np.cos(phi) / self.m - self.g,
             -u1 * jnp.sin(phi) / self.m, #-(t1 + t2) * np.sin(phi) / self.m,
+            u1 * jnp.cos(phi) / self.m - self.g, #(t1 + t2) * np.cos(phi) / self.m - self.g,
             omega,
             u2 / self.Izz #(t1 - t2) * self.l / (2 * self.Izz)
         ])

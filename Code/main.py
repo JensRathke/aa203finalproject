@@ -30,9 +30,9 @@ if __name__ == '__main__':
 
     quadcopter = QuadcopterPlanar(2.5, 1.0, .5, 0.7)
 
-    s_init = np.array([4., 6., 2., 2., -np.pi / 4, -1.])
+    s_init = np.array([4., 60., 0., 0., -np.pi / 4, -1.])
 
-    select_controller = 3
+    select_controller = 4
     
     if select_controller == 1:
         print("iLQR controller")
@@ -43,6 +43,9 @@ if __name__ == '__main__':
     elif select_controller == 3:
         print("MPC controller with linearization")
         controller = PQcopter_controller_MPC(quadcopter, s_init)
+    elif select_controller == 4:
+        print("non-linear MPC controller")
+        controller = PQC_controller_nlMPC(quadcopter, s_init)
     else:
         print("Test controller")
         controller = PQcopter_controller_test(quadcopter, s_init)

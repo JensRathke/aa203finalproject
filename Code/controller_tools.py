@@ -5,11 +5,58 @@ import numpy as np
 import jax
 import jax.numpy as jnp
 
+from functools import partial
 from typing import Callable, NamedTuple
 
 def linearize(f, s, u):
-        A, B = jax.jacobian(f, (0, 1))(s, u)
-        return A, B
+    """
+    Functionality
+        Linearize the function `f(s, u)` around `(s, u)`.
+
+    Parameters
+        f : callable
+            A nonlinear function with call signature `f(s, u)`.
+        s : numpy.ndarray
+            The state (1-D).
+        u : numpy.ndarray
+            The control input (1-D).
+
+    Returns
+        A : numpy.ndarray
+            The Jacobian of `f` at `(s, u)`, with respect to `s`.
+        B : numpy.ndarray
+            The Jacobian of `f` at `(s, u)`, with respect to `u`.
+    """
+    # Option A
+    # A, B = jax.jacfwd(f, argnums=(0, 1))(s, u)
+    
+    # Option B
+    A, B = jax.jacobian(f, (0, 1))(s, u)
+
+    return A, B
+
+@partial(jax.jit, static_argnums=(0,))
+@partial(jax.vmap, in_axes=(None, 0, 0))
+def affinize(f, s, u):
+    """
+    Affinize the function `f(s, u)` around `(s, u)`.
+    """
+    A, B  = jax.jacobian(f, (0, 1))(s, u)
+    c = f(s, u) - A @ s - B @ u
+
+    return A, B, c
+
+def discretize(f, dt):
+    """Discretize continuous-time dynamics `f` via Runge-Kutta integration."""
+
+    def integrator(s, u, dt=dt):
+        k1 = dt * f(s, u)
+        k2 = dt * f(s + k1 / 2, u)
+        k3 = dt * f(s + k2 / 2, u)
+        k4 = dt * f(s + k3, u)
+        return s + (k1 + 2 * k2 + 2 * k3 + k4) / 6
+
+    return integrator
 
 def is_controllable(A, B, detailed_return=False):
     """

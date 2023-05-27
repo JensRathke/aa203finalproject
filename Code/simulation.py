@@ -23,7 +23,6 @@ class SimulationPlanar:
             goal state as a np.array
         """
 
-        
 
 class SimulationCubic:
     """ Simulation for a cubic Quadcopter """
