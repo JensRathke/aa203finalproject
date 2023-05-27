@@ -70,57 +70,31 @@ class PQcopter_controller_iLQR():
 
             # PART (c) ############################################################
             # INSTRUCTIONS: Update `Y`, `y`, `ds`, `du`, `s_bar`, and `u_bar`.
-            k = N - 1
-            s_tilde = np.zeros((N + 1, n))
-            u_tilde = np.zeros((N, m))
-            q = np.zeros((N + 1, 1, n))
-            r = np.zeros((N + 1, m))
-            P = np.zeros((N + 1, Q.shape[0], Q.shape[1]))
-            p = np.zeros((N + 1, n))
-            hs = np.zeros((N, n))
-            hu = np.zeros((N, m))
-            Hss = np.zeros((N, Q.shape[0], Q.shape[1]))
-            Huu = np.zeros((N, R.shape[0], R.shape[1]))
-            Hsu = np.zeros((N, n, m))
-
-            q[N] = s_bar[N].T @ QN - s_goal.T @ QN
-            P[N] = Q
-            p[N] = q[N]
-
-            print("iteration: ", iteration)
-
-            while k >= 0:
-                q[k] = s_bar[k].T @ Q - s_goal.T @ Q
-                r[k] = u_bar[k].T @ R
-
-                # Approxmate terms for eta_k, h_s_k, h_u_k, H_ss_k, H_uu_k and H_su_k
-                hs[k] = q[k] + A[k].T @ p[k+1]
-                hu[k] = r[k] + B[k].T @ p[k+1]
-                Hss[k] = Q + A[k].T @ P[k+1] @ A[k]
-                Huu[k] = R + B[k].T @ P[k+1] @ B[k]
-                Hsu[k] = A[k].T @ P[k+1] @ B[k]
-
-                # Recursively computation of p_k, P_k, y_k, Y_k and beta_k
-                Y[k] = -1 * np.linalg.inv(Huu[k]) @ Hsu[k].T
-                y[k] = -1 * np.linalg.inv(Huu[k]) @ hu[k]
-                P[k] = Hss[k] + Hsu[k] @ Y[k]
-                p[k] = hs[k] + Hsu[k] @ y[k]
-
-                k -= 1
-
-            for k in range(0, N-1):
-                # Rollout for stilde_k+1 and utilde_k
-                u_tilde[k] = y[k] + Y[k] @ s_tilde[k]
-                ds[k] = f(s_bar[k] + s_tilde[k], u_bar[k] + u_tilde[k])
-                du[k] = (u_bar[k+1] - u_bar[k]) * self.dt
-                # s_tilde[k+1] = s_bar[k] + s_tilde[k] + dt * ds[k] - s_bar[k+1]
-                s_tilde[k+1] = f(s_bar[k] + s_tilde[k], u_bar[k] + u_tilde[k]) - s_bar[k+1]
-
-                # Update (s_bar, u_bar)
-                s_bar[k] = s_bar[k] + s_tilde[k]
-                u_bar[k] = u_bar[k] + u_tilde[k]
-
-            print("max du", np.max(np.abs(du)))
+            
+            # Backward pass
+            P = QN
+            p = QN @ (s_bar[-1] - s_goal)
+            for k in range(N-1, -1, -1):
+                q = Q @ (s_bar[k] - s_goal)
+                r = R @ u_bar[k]
+                Hss = Q + A[k].T @ P @ A[k]
+                Huu = R + B[k].T @ P @ B[k]
+                Hsu = A[k].T @ P @ B[k]
+                hs = q + A[k].T @ p
+                hu = r + B[k].T @ p
+                Y[k] = -np.linalg.solve(Huu, Hsu.T)
+                y[k] = -np.linalg.solve(Huu, hu)
+                # P = Hss - Y[k].T @ Huu @ Y[k]
+                # p = hs - Y[k].T @ Huu @ y[k]
+                P = Hss + Hsu @ Y[k]
+                p = hs + Hsu @ y[k]
+        
+            # Forward pass
+            for k in range(N):
+                du[k] = y[k] + Y[k] @ ds[k]
+                ds[k+1] = f(s_bar[k] + ds[k], u_bar[k] + du[k]) - s_bar[k+1]
+            s_bar += ds
+            u_bar += du
             #######################################################################
 
             if np.max(np.abs(du)) < eps:

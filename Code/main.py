@@ -32,7 +32,7 @@ if __name__ == '__main__':
 
     s_init = np.array([4., 60., 0., 0., -np.pi / 4, -1.])
 
-    select_controller = 4
+    select_controller = 0
     
     if select_controller == 1:
         print("iLQR controller")
