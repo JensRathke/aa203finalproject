@@ -154,7 +154,7 @@ class PQcopter_controller_MPC():
 
 class QC_controller_nlMPC():
     """ Controller for a planar quadcopter using non-linear MPC """
-    def __init__(self, quadcopter: QuadcopterPlanar, state_dim, control_dim, P, Q, R, rs, ru, rT, s_init, s_goal):
+    def __init__(self, quadcopter, state_dim, control_dim, P, Q, R, rs, ru, rT, s_init, s_goal, T, dt):
         """
         Functionality
             Initialisation of a controller for a planar quadcopter using non-linear MPC
@@ -173,8 +173,8 @@ class QC_controller_nlMPC():
         self.eps = 1e-3                     # SCP convergence tolerance
         self.s_init = s_init                # initial state
         self.s_goal = s_goal                # goal state
-        self.T = 20  # s                    # simulation time
-        self.dt = 0.1 # s                   # sampling time
+        self.T = T #s                       # simulation time
+        self.dt = dt #s                     # sampling time
         self.K = int(self.T / self.dt) + 1  # number of steps
         self.N_mpc = 10                     # MPC rollout steps
         self.N_scp = 3                      # Max. number of SCP interations
@@ -186,7 +186,9 @@ class QC_controller_nlMPC():
 
         self.airborne = True
 
-    def landing_scp(self, s0, s_init = None, u_init = None, convergence_error = False):
+        self.pad_trajectory = None
+
+    def landing_scp(self, s0, k0, s_init = None, u_init = None, convergence_error = False):
         # Initialize trajectory
         if s_init is None or u_init is None:
             s = np.zeros((self.N_mpc + 1, self.n))
@@ -202,7 +204,7 @@ class QC_controller_nlMPC():
         J = np.zeros(self.N_scp + 1)
 
         for iteration in range(self.N_scp):
-            s, u, J[iteration + 1] = self.scp_iteration(s0, s, u)
+            s, u, J[iteration + 1] = self.scp_iteration(s0, k0, s, u)
 
             dJ = np.abs(J[iteration + 1] - J[iteration])
             if dJ < self.eps:
@@ -214,7 +216,7 @@ class QC_controller_nlMPC():
 
         return s, u
     
-    def scp_iteration(self, s0, s_prev, u_prev):
+    def scp_iteration(self, s0, k0, s_prev, u_prev):
         A, B, c = ct.affinize(self.dynamics, s_prev[:-1], u_prev)
         A, B, c = np.array(A), np.array(B), np.array(c)
 
@@ -232,7 +234,7 @@ class QC_controller_nlMPC():
 
             if k == self.N_mpc:
                 # terminal cost
-                costs.append(cp.quad_form(s_cvx[k] - self.s_goal, self.P))
+                costs.append(cp.quad_form(s_cvx[k] - self.pad_trajectory[k0 + k], self.P))
 
             if k <= self.N_mpc and k > 0:
                 # dynamics constraint
@@ -240,7 +242,7 @@ class QC_controller_nlMPC():
 
             if k < self.N_mpc:
                 # stage cost
-                costs.append(cp.quad_form(s_cvx[k] - self.s_goal, self.Q))
+                costs.append(cp.quad_form(s_cvx[k] - self.pad_trajectory[k0 + k], self.Q))
                 costs.append(cp.quad_form(u_cvx[k], self.R))
 
         objective = cp.sum(costs)
@@ -262,25 +264,20 @@ class QC_controller_nlMPC():
 
         s = np.copy(self.s_init)
 
-        total_time = time()
         total_control_cost = 0.0
 
         s_init = None
         u_init = None
+        
+        for k in tqdm(range(self.K)):
+            s_mpc[k], u_mpc[k] = self.landing_scp(s, k, s_init, u_init)
 
-        for t in tqdm(range(self.K)):
-            s_mpc[t], u_mpc[t] = self.landing_scp(s, s_init, u_init)
+            s = self.dynamics(s_mpc[k, 0], u_mpc[k, 0])
 
-            s = self.dynamics(s_mpc[t, 0], u_mpc[t, 0])
+            total_control_cost += u_mpc[k, 0].T @ self.R @ u_mpc[k, 0]
 
-            total_control_cost += u_mpc[t, 0].T @ self.R @ u_mpc[t, 0]
-
-            u_init = np.concatenate([u_mpc[t, 1:], u_mpc[t, -1:]])
-            s_init = np.concatenate([s_mpc[t, 1:], self.dynamics(s_mpc[t, -1], u_mpc[t, -1]).reshape([1, -1])])
-
-        total_time = time() - total_time
-        print('Total elapsed time:', total_time, 'seconds')
-        print('Total control cost:', total_control_cost)
+            u_init = np.concatenate([u_mpc[k, 1:], u_mpc[k, -1:]])
+            s_init = np.concatenate([s_mpc[k, 1:], self.dynamics(s_mpc[k, -1], u_mpc[k, -1]).reshape([1, -1])])
 
         # Plot trajectory and controls
         # fig, ax = plt.subplots(1, 2, dpi=150, figsize=(15, 5))
@@ -304,16 +301,4 @@ class QC_controller_nlMPC():
         # plt.show()
         # plt.close(fig)
 
-        t_line = np.arange(0., self.K * self.dt, self.dt)
-
-        # Plot trajectory
-        self.qc.plot_trajectory(t_line, s_mpc[:, 0], "test_nlMPC_trajectory")
-
-        # Plot states
-        self.qc.plot_states(t_line, s_mpc[:, 0], "test_nlMPC_states")
-        
-        # Plot states
-        self.qc.plot_controls(t_line, u_mpc[:, 0], "test_nlMPC_controls")
-
-        # Create animation
-        self.qc.animate(t_line, s_mpc[:, 0], s_mpc[:, 0], "test_nlMPC")
+        return s_mpc[:, 0], u_mpc[:, 0], total_control_cost

@@ -31,6 +31,8 @@ class QuadcopterPlanar:
         self.Iyy = (2. * self.m * (self.r ** 2.) / 5.) + 2. * self.m * (self.l ** 2.)
         self.Izz = (2. * self.m * (self.r ** 2.) / 5.) + 4. * self.m * (self.l ** 2.)
 
+        self.landed = False
+
     def dynamics(self, s, u):
         """
         Functionality
