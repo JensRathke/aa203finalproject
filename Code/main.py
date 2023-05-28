@@ -31,8 +31,16 @@ if __name__ == '__main__':
     quadcopter = QuadcopterPlanar(2.5, 1.0, .5, 0.7)
 
     s_init = np.array([4., 60., 0., 0., -np.pi / 4, -1.])
+    s_goal = np.array([0., quadcopter.h, 0., 0., 0. , 0.])
 
-    select_controller = 0
+    P = 1e2 * np.eye(6)
+    Q = np.diag(jnp.array([10., 10., 1., 1., 10., 1.]))
+    R = 0.1 * jnp.eye(2)
+    rs = 5.0
+    ru = 0.1
+    rT = 1
+
+    select_controller = 4
     
     if select_controller == 1:
         print("iLQR controller")
@@ -45,12 +53,27 @@ if __name__ == '__main__':
         controller = PQcopter_controller_MPC(quadcopter, s_init)
     elif select_controller == 4:
         print("non-linear MPC controller")
-        controller = PQC_controller_nlMPC(quadcopter, s_init)
-    else:
+        controller = QC_controller_nlMPC(quadcopter, 6, 2, P, Q, R, rs, ru, rT, s_init, s_goal)
+    elif select_controller == 9:
         print("Test controller")
         controller = PQcopter_controller_test(quadcopter, s_init)
 
-    controller.land()
+    if select_controller != 0:
+        controller.land()
+
+
+    # quadcopter2 = QuadcopterCubic(2.5, 1.0, .5, 0.7)
+
+    # s_init = np.array([4., 0., 60., 0., 0., 0., 0., -np.pi / 4, 0., 0., 0., 0.])
+    # s_goal = np.array([0., 0., quadcopter2.h, 0., 0., 0. , 0., 0., 0. , 0., 0., 0.])
+
+    # P = 1e2 * np.eye(12)
+    # Q = np.diag(jnp.array([10., 10., 10., 1., 1., 1., 10., 10., 10., 1., 1., 1.]))
+    # R = 0.1 * jnp.eye(4)
+
+    # controller = QC_controller_nlMPC(quadcopter2, 12, 4, P, Q, R, rs, ru, rT, s_init, s_goal)
+
+    # controller.land()
 
 
 

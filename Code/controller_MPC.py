@@ -152,9 +152,9 @@ class PQcopter_controller_MPC():
         plot_trajectory("test_MPC_traj", x_values, y_values)
 
 
-class PQC_controller_nlMPC():
+class QC_controller_nlMPC():
     """ Controller for a planar quadcopter using non-linear MPC """
-    def __init__(self, quadcopter: QuadcopterPlanar, s_init):
+    def __init__(self, quadcopter: QuadcopterPlanar, state_dim, control_dim, P, Q, R, rs, ru, rT, s_init, s_goal):
         """
         Functionality
             Initialisation of a controller for a planar quadcopter using non-linear MPC
@@ -165,21 +165,26 @@ class PQC_controller_nlMPC():
         """
         self.qc = quadcopter
 
-        self.n = 6                                  # state dimension
-        self.m = 2                                  # control dimension
-        self.P = 1e2 * np.eye(self.n)                       # terminal state cost matrix
-        self.Q = np.diag(jnp.array([10., 10., 1., 1., 10., 1.]))   # state cost matrix
-        self.R = 0.01 * jnp.eye(self.m)                # control cost matrix
-        self.eps = 1e-3                             # SCP convergence tolerance
-        self.s_init = s_init                        # initial state
-        self.s_goal = jnp.array([0., quadcopter.h, 0., 0., 0. , 0.])      # goal state
-        self.T = 40  # s                            # simulation time
-        self.dt = 0.1 # s                           # sampling time
-        self.K = int(self.T / self.dt) + 1          # number of steps
-        self.N_mpc = 20                              # MPC rollout steps
-        self.N_scp = 3                              # Max. number of SCP interations
+        self.n = state_dim                  # state dimension
+        self.m = control_dim                # control dimension
+        self.P = P                          # terminal state cost matrix
+        self.Q = Q                          # state cost matrix
+        self.R = R                          # control cost matrix
+        self.eps = 1e-3                     # SCP convergence tolerance
+        self.s_init = s_init                # initial state
+        self.s_goal = s_goal                # goal state
+        self.T = 20  # s                    # simulation time
+        self.dt = 0.1 # s                   # sampling time
+        self.K = int(self.T / self.dt) + 1  # number of steps
+        self.N_mpc = 10                     # MPC rollout steps
+        self.N_scp = 3                      # Max. number of SCP interations
+        self.rs = rs
+        self.ru = ru
+        self.rT = rT
 
         self.dynamics = self.qc.discrete_dynamics_jnp
+
+        self.airborne = True
 
     def landing_scp(self, s0, s_init = None, u_init = None, convergence_error = False):
         # Initialize trajectory
@@ -252,8 +257,8 @@ class PQC_controller_nlMPC():
         return s, u, J
 
     def land(self):
-        s_mpc = np.zeros((self.T, self.N_mpc + 1, self.n))
-        u_mpc = np.zeros((self.T, self.N_mpc, self.m))
+        s_mpc = np.zeros((self.K, self.N_mpc + 1, self.n))
+        u_mpc = np.zeros((self.K, self.N_mpc, self.m))
 
         s = np.copy(self.s_init)
 
@@ -263,7 +268,7 @@ class PQC_controller_nlMPC():
         s_init = None
         u_init = None
 
-        for t in tqdm(range(self.T)):
+        for t in tqdm(range(self.K)):
             s_mpc[t], u_mpc[t] = self.landing_scp(s, s_init, u_init)
 
             s = self.dynamics(s_mpc[t, 0], u_mpc[t, 0])
@@ -277,27 +282,38 @@ class PQC_controller_nlMPC():
         print('Total elapsed time:', total_time, 'seconds')
         print('Total control cost:', total_control_cost)
 
+        # Plot trajectory and controls
+        # fig, ax = plt.subplots(1, 2, dpi=150, figsize=(15, 5))
+        # fig.suptitle('$N = {}$, '.format(self.N_mpc) + r'$N_\mathrm{SCP} = ' + '{}$'.format(self.N_scp))
+
+        # for t in range(self.T):
+        #     ax[0].plot(s_mpc[t, :, 0], s_mpc[t, :, 1], '--*', color='k')
+        # ax[0].plot(s_mpc[:, 0, 0], s_mpc[:, 0, 1], '-')
+        # ax[0].set_xlabel(r'$x(t)$')
+        # ax[0].set_ylabel(r'$y(t)$')
+        # ax[0].axis('equal')
+
+        # ax[1].plot(u_mpc[:, 0, 0], '-', label=r'$u_1(t)$')
+        # ax[1].plot(u_mpc[:, 0, 1], '-', label=r'$u_2(t)$')
+        # ax[1].set_xlabel(r'$t$')
+        # ax[1].set_ylabel(r'$u(t)$')
+        # ax[1].legend()
+
+        # suffix = '_Nmpc={}_Nscp={}'.format(self.N_mpc, self.N_scp)
+        # plt.savefig('Figures/test_nlmpc' + suffix + '.png', bbox_inches='tight')
+        # plt.show()
+        # plt.close(fig)
+
+        t_line = np.arange(0., self.K * self.dt, self.dt)
+
+        # Plot trajectory
+        self.qc.plot_trajectory(t_line, s_mpc[:, 0], "test_nlMPC_trajectory")
+
+        # Plot states
+        self.qc.plot_states(t_line, s_mpc[:, 0], "test_nlMPC_states")
         
-        fig, ax = plt.subplots(1, 2, dpi=150, figsize=(15, 5))
-        fig.suptitle('$N = {}$, '.format(self.N_mpc) + r'$N_\mathrm{SCP} = ' + '{}$'.format(self.N_scp))
+        # Plot states
+        self.qc.plot_controls(t_line, u_mpc[:, 0], "test_nlMPC_controls")
 
-        for t in range(self.T):
-            ax[0].plot(s_mpc[t, :, 0], s_mpc[t, :, 1], '--*', color='k')
-        ax[0].plot(s_mpc[:, 0, 0], s_mpc[:, 0, 1], '-')
-        ax[0].set_xlabel(r'$x(t)$')
-        ax[0].set_ylabel(r'$y(t)$')
-        ax[0].axis('equal')
-
-        ax[1].plot(u_mpc[:, 0, 0], '-', label=r'$u_1(t)$')
-        ax[1].plot(u_mpc[:, 0, 1], '-', label=r'$u_2(t)$')
-        ax[1].set_xlabel(r'$t$')
-        ax[1].set_ylabel(r'$u(t)$')
-        ax[1].legend()
-
-        suffix = '_Nmpc={}_Nscp={}'.format(self.N_mpc, self.N_scp)
-        plt.savefig('Figures/test_nlmpc' + suffix + '.png', bbox_inches='tight')
-        plt.show()
-
-        t_line = np.arange(0., self.T, 1)
-
+        # Create animation
         self.qc.animate(t_line, s_mpc[:, 0], s_mpc[:, 0], "test_nlMPC")

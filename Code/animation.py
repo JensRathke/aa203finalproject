@@ -129,7 +129,7 @@ def animate_planar_quad(filename, t, x, y, phi, x_goal, y_goal, phi_goal, l, r, 
                                   interval=dt*1000, blit=True)
     
     ani.save(filepath + filename + '.mp4', writer='ffmpeg')
-    print("Saved figure as:", filepath + filename + '.mp4')
+    print("Saved animation as:", filepath + filename + '.mp4')
     plt.show()
 
 
