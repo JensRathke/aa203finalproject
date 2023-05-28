@@ -184,8 +184,9 @@ class QC_controller_nlMPC():
 
         self.dynamics = self.qc.discrete_dynamics_jnp
 
-        self.airborne = True
+        self.landed = False
 
+        self.timeline = None
         self.pad_trajectory = None
 
     def landing_scp(self, s0, k0, s_init = None, u_init = None, convergence_error = False):
@@ -265,14 +266,26 @@ class QC_controller_nlMPC():
         s = np.copy(self.s_init)
 
         total_control_cost = 0.0
+        prc = 1
+        touchdownvels = np.zeros(3)
 
         s_init = None
         u_init = None
         
         for k in tqdm(range(self.K)):
-            s_mpc[k], u_mpc[k] = self.landing_scp(s, k, s_init, u_init)
+            if self.landed == False:
+                s_mpc[k], u_mpc[k] = self.landing_scp(s, k, s_init, u_init)
+            else:
+                s_mpc[k] = self.pad_trajectory[k]
+                u_mpc[k] = 0
 
             s = self.dynamics(s_mpc[k, 0], u_mpc[k, 0])
+
+            if round(s[0], prc) == round(self.pad_trajectory[k, 0], prc) and round(s[1], prc) == round(self.pad_trajectory[k, 1], prc) and round(s[4], prc) == round(self.pad_trajectory[k, 4], prc):
+                self.landed = True
+                touchdownvels[0] = s[2]
+                touchdownvels[1] = s[3]
+                touchdownvels[2] = s[5]
 
             total_control_cost += u_mpc[k, 0].T @ self.R @ u_mpc[k, 0]
 
@@ -301,4 +314,4 @@ class QC_controller_nlMPC():
         # plt.show()
         # plt.close(fig)
 
-        return s_mpc[:, 0], u_mpc[:, 0], total_control_cost
+        return s_mpc[:, 0], u_mpc[:, 0], total_control_cost, touchdownvels

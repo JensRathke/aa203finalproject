@@ -32,11 +32,11 @@ if __name__ == '__main__':
 
     quadcopter = QuadcopterPlanar(2.5, 1.0, .5, 0.7)
 
-    s_init = np.array([4., 60., 0., 0., -np.pi / 4, -1.])
+    s_init = np.array([4., 10., 0., 0., -np.pi / 4, -1.])
     s_goal = np.array([0., quadcopter.h, 0., 0., 0. , 0.])
 
     T = 30 #s
-    dt = 0.1 #s
+    dt = 0.05 #s
 
     n = 6
     m = 2

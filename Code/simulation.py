@@ -43,6 +43,7 @@ class SimulationPlanar:
             self.pad_trajectory[k, 1] = 0
             self.pad_trajectory[k, 4] = 0.1 * np.pi * np.sin(self.timeline_pad[k])
 
+        self.controller.timeline = self.timeline
         self.controller.pad_trajectory = self.pad_trajectory
 
 
@@ -53,12 +54,13 @@ class SimulationPlanar:
         """
         # Run the simulation
         total_time = time()
-        self.s_trajectory, self.u_trajectory, total_control_cost = self.controller.land()
+        self.s_trajectory, self.u_trajectory, total_control_cost, touchdownvels = self.controller.land()
         total_time = time() - total_time
 
         # Print results
         print('Total elapsed time:', total_time, 'seconds')
         print('Total control cost:', total_control_cost)
+        print("touchdown velocities: ", touchdownvels)
         
         # Plot trajectory
         self.qc.plot_trajectory(self.timeline, self.s_trajectory, "test_nlMPC_trajectory")

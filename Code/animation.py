@@ -93,11 +93,11 @@ def animate_planar_quad(filename, t, x, y, phi, x_goal, y_goal, phi_goal, l, r, 
     timestamp = ax.text(0.1, 0.9, '', transform=ax.transAxes)
 
     # Artists of the landing pad
-    pad = mpatches.Rectangle((-1.5 * l, -0.1),
+    pad = mpatches.Rectangle((-1.5 * l, -0.1 - com_height),
                              3 * l, 0.1,
                              facecolor='tab:red', edgecolor='k')
     pad_centre = mpatches.Ellipse((0,
-                                   com_height),
+                                   0),
                                   0.4, 0.4,
                                   facecolor='tab:red', edgecolor='k')
     patches_pad = (pad, pad_centre)
