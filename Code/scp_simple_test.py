@@ -224,6 +224,7 @@ def scp_iteration(f, s0, s_goal, s_prev, u_prev, N, P, Q, R, u_max, ρ):
     constraints.append(s_cvx[0]==s0)
     #terminal constraint
     constraints.append(cvx.norm_inf(s_cvx[N] - s_prev[N])<= ρ)
+    #constraints.append(s_cvx[N,1]>= 0.0)
 
     for i in range(N):
         # append stage costs
@@ -233,7 +234,13 @@ def scp_iteration(f, s0, s_goal, s_prev, u_prev, N, P, Q, R, u_max, ρ):
         # stage affine constraints and trust region/control constraints
         constraints.append(s_cvx[i+1] == A[i] @ s_cvx[i] + B[i] @ u_cvx[i] + c[i])
         constraints.append(cvx.norm_inf(s_cvx[i] - s_prev[i])<= ρ)
-        constraints.append(cvx.norm_inf(u_cvx[i] - u_prev[i])<= ρ)
+        constraints.append(cvx.norm_inf(u_cvx[i] - u_prev[i])<= u_ρ)
+        constraints.append(cvx.norm_inf(s_cvx[i,0] - s_prev[i,0])<= 1000.)
+        constraints.append(cvx.norm_inf(s_cvx[i,1] - s_prev[i,1])<= 4000.)
+        constraints.append(cvx.norm_inf(s_cvx[i,2] - s_prev[i,2])<= 1000.)
+        constraints.append(cvx.norm_inf(s_cvx[i,3] - s_prev[i,3])<= 1000.)
+        constraints.append(cvx.norm_inf(s_cvx[i,4] - s_prev[i,4])<= 1000.)
+        constraints.append(cvx.norm_inf(s_cvx[i,5] - s_prev[i,5])<= 1000.)
         constraints.append(cvx.abs(u_cvx[i])<= u_max)
 
     # END PART (c) ############################################################
@@ -362,10 +369,11 @@ P = 1e2*np.eye(n)                    # terminal state cost matrix
 #P[1][1] = P[1][1] * 10
 #P = 1e2*np.eye(n)                    # terminal state cost matrix
 #Q = np.diag([1., 1., 1e-3, 1e-3, 1e-3, 1e-3])  # state cost matrix
-Q = jnp.diag(jnp.array([10., 10., 1., 1., 10., 1.]))
-R = 1e-3*np.eye(m)                   # control cost matrix
-ρ = 10000.                               # trust region parameter
-u_max = 8000.                           # control effort bound
+Q = jnp.diag(jnp.array([10., 10., 10., 10., 10., 1.]))
+R = 1e-2*np.eye(m)                   # control cost matrix
+ρ = 10000.
+u_ρ = 55.                             # trust region parameter
+u_max = 125.                           # control effort bound
 #eps = 5e-1                           # convergence tolerance
 eps = 2.5e-1                           # convergence tolerance
 max_iters = 100                      # maximum number of SCP iterations
@@ -384,7 +392,7 @@ s, u, J = solve_swingup_scp(fd, s0, s_goal, N, P, Q, R, u_max, ρ,
 # Simulate open-loop control
 for k in range(N):
     s[k+1] = fd(s[k], u[k])
-
+"""
 # Plot state and control trajectories
 fig, ax = plt.subplots(1, n + m, dpi=150, figsize=(15, 2))
 plt.subplots_adjust(wspace=0.45)
@@ -404,14 +412,14 @@ for i in range(m):
     ax[n + i].set_ylabel(labels_u[i])
 plt.savefig('cartpole_swingup_constrained.png',
             bbox_inches='tight')
-
+"""
 # Plot cost history over SCP iterations
 fig, ax = plt.subplots(1, 1, dpi=150, figsize=(8, 5))
 ax.semilogy(J)
 ax.set_xlabel(r'SCP iteration $i$')
 ax.set_ylabel(r'SCP cost $J(\bar{x}^{(i)}, \bar{u}^{(i)})$')
-plt.title('Q 2.5 d) Cost history')
-plt.savefig('cartpole_swingup_constrained_cost.png',
+plt.title('SCP Cost history')
+plt.savefig('scp_cost.png',
             bbox_inches='tight')
 plt.show()
 

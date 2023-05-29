@@ -28,18 +28,19 @@ class PQcopter_controller_SCP():
 
         self.n = 6                                  # state dimension
         self.m = 2                                  # control dimension
-        self.Q =jnp.diag(jnp.array([10., 10., 1., 1., 10., 1.]))   # state cost matrix
-        self.R = 1e-3*np.eye(self.m)                     # control cost matrix
+        self.Q =jnp.diag(jnp.array([10., 10., 10., 10., 10., 1.]))   # state cost matrix
+        self.R = 1e-2*np.eye(self.m)                     # control cost matrix
         self.P = 1e2*np.eye(self.n)                     # terminal state cost matrix
         self.s_init = s_init                        # initial state
         #self.s_goal = np.array([0., self.qcopter.h, 0., 0., 0. , 0.])      # goal state
         self.s_goal = np.array([0., self.qcopter.h, 0., 0., 0. , 0.])      # goal state
         self.T = 30.                                # simulation time
         self.dt = 0.1 # s
-        self.u_max = 8000.                           # control effort bound
+        self.u_max = 125.                           # control effort bound
         self.eps = 5e-1
         self.ρ = 10000.
-        self.max_iters = 200
+        self.u_ρ = 75
+        self.max_iters = 100
 
         self.fd = jax.jit(discretize(self.qcopter.dynamics_jnp, self.dt))
         #self.fd = self.discretize(f, self.dt)
@@ -140,7 +141,13 @@ class PQcopter_controller_SCP():
             # stage affine constraints and trust region/control constraints
             constraints.append(s_cvx[i+1] == A[i] @ s_cvx[i] + B[i] @ u_cvx[i] + c[i])
             constraints.append(cvx.norm_inf(s_cvx[i] - s_prev[i])<= ρ)
-            constraints.append(cvx.norm_inf(u_cvx[i] - u_prev[i])<= ρ)
+            constraints.append(cvx.norm_inf(u_cvx[i] - u_prev[i])<= self.u_ρ)
+            constraints.append(cvx.norm_inf(s_cvx[i,0] - s_prev[i,0])<= 1000.)
+            constraints.append(cvx.norm_inf(s_cvx[i,1] - s_prev[i,1])<= 4000.)
+            constraints.append(cvx.norm_inf(s_cvx[i,2] - s_prev[i,2])<= 1000.)
+            constraints.append(cvx.norm_inf(s_cvx[i,3] - s_prev[i,3])<= 1000.)
+            constraints.append(cvx.norm_inf(s_cvx[i,4] - s_prev[i,4])<= 1000.)
+            constraints.append(cvx.norm_inf(s_cvx[i,5] - s_prev[i,5])<= 1000.)
             constraints.append(cvx.abs(u_cvx[i])<= u_max)
 
         # END PART (c) ############################################################
