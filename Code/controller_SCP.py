@@ -28,42 +28,38 @@ class PQcopter_controller_SCP():
 
         self.n = 6                                  # state dimension
         self.m = 2                                  # control dimension
-        self.Q = np.diag([1e-2,1e-2, 1.,  1., 1e-3, 1e-3])    # state cost matrix
-        self.R = 1e-2*np.eye(self.m)                     # control cost matrix
-        self.P = 1e3*np.eye(self.n)                     # terminal state cost matrix
+        self.Q =jnp.diag(jnp.array([10., 10., 1., 1., 10., 1.]))   # state cost matrix
+        self.R = 1e-3*np.eye(self.m)                     # control cost matrix
+        self.P = 1e2*np.eye(self.n)                     # terminal state cost matrix
         self.s_init = s_init                        # initial state
+        #self.s_goal = np.array([0., self.qcopter.h, 0., 0., 0. , 0.])      # goal state
         self.s_goal = np.array([0., self.qcopter.h, 0., 0., 0. , 0.])      # goal state
-        self.T = 300.                                # simulation time
+        self.T = 30.                                # simulation time
         self.dt = 0.1 # s
-        self.u_max = 80000.                           # control effort bound
+        self.u_max = 8000.                           # control effort bound
         self.eps = 5e-1
-        self.ρ = 1.
+        self.ρ = 10000.
         self.max_iters = 200
-       # @partial(jax.jit, static_argnums=(0,))
-       # @partial(jax.vmap, in_axes=(None, 0, 0))
-        f_dynamics = jax.vmap(self.qcopter.dynamics_jnp, in_axes=(0, None))
-        f_dynamics = jax.vmap(f_dynamics, in_axes=(None, 0))
-        #f = jax.jit(self.qcopter.dynamics)
-        f = jax.jit(f_dynamics)
-        f = self.qcopter.dynamics_jnp
-        #self.fd = jax.jit(lambda s, u, dt=self.dt: s + dt*f(s, u))
-        self.fd = jax.jit(self.discretize(f, self.dt))
+
+        self.fd = jax.jit(discretize(self.qcopter.dynamics_jnp, self.dt))
         #self.fd = self.discretize(f, self.dt)
                               # sampling time
 
     #@partial(jax.jit, static_argnums=(0,))
     #@partial(jax.vmap, in_axes=(None, 0, 0))
+    """
     def affinize(self, f, s, u):
 
         A, B  = jax.jacobian(f,(0,1))(s,u)
         c = f(s,u) - A @ s - B @ u
-        print("A", A)
-        print("B", B)
-        print("c", c)
+        #print("A", A)
+        #print("B", B)
+        #ßprint("c", c)
         return A, B, c
-
+    """
+    """
     def discretize(self,f, dt):
-        """Discretize continuous-time dynamics `f` via Runge-Kutta integration."""
+        #Discretize continuous-time dynamics `f` via Runge-Kutta integration.
 
         def integrator(s, u, dt=dt):
             k1 = dt * f(s, u)
@@ -73,7 +69,7 @@ class PQcopter_controller_SCP():
             return s + (k1 + 2 * k2 + 2 * k3 + k4) / 6
 
         return integrator
-
+    """
     def scp_iteration(self, f, s0, s_goal, s_prev, u_prev, N, P, Q, R, u_max, ρ):
         """Solve a single SCP sub-problem for the cart-pole swing-up problem.
 
@@ -114,8 +110,8 @@ class PQcopter_controller_SCP():
         J : float
             The SCP sub-problem cost.
         """
-        f_affine = jax.vmap(self.affinize, in_axes=(None, 0, 0))
-        A, B, c = f_affine(f, s_prev[:-1], u_prev)
+        #f_affine = jax.vmap(affinize, in_axes=(None, 0, 0))
+        A, B, c = affinize(f, s_prev[:-1], u_prev)
         A, B, c = np.array(A), np.array(B), np.array(c)
         n = Q.shape[0]
         m = R.shape[0]
@@ -207,9 +203,8 @@ class PQcopter_controller_SCP():
         u = np.zeros((N, m))
         s = np.zeros((N + 1, n))
         s[0] = s0
-        fd = self.fd
         for k in range(N):
-            s[k+1] = fd(s[k], u[k])
+            s[k+1] = f(s[k], u[k])
 
         # Do SCP until convergence or maximum number of iterations is reached
         converged = False
@@ -234,7 +229,8 @@ class PQcopter_controller_SCP():
         #f = jax.jit(self.qcopter.dynamics)
         #fd = jax.jit(lambda s, u, dt=self.dt: s + dt*f(s, u))
         #fd = jax.jit(self.discretize(self.qcopter.dynamics, self.dt))
-        fd = self.fd
+        #fd = self.fd
+        fd = jax.jit(discretize(self.qcopter.dynamics_jnp,0.1))
 
         # Compute the SCP solution with the discretized dynamics
         print('Computing SCP solution ... ', end='', flush=True)
@@ -250,7 +246,6 @@ class PQcopter_controller_SCP():
         start = time.time()
         s = np.zeros((N + 1, self.n))
         u = np.zeros((N, self.m))
-        s[0] = self.s_init
 
         for k in range(N):
             s[k+1] = fd(s[k], u[k])
@@ -264,6 +259,27 @@ class PQcopter_controller_SCP():
         self.qcopter.plot_controls(t[0:N], u, "test_SCP_u", ["T1", "T2"])
         self.qcopter.animate(t, s, sg, "test_SCP")
 
+@partial(jax.jit, static_argnums=(0,))
+@partial(jax.vmap, in_axes=(None, 0, 0))
+def affinize( f, s, u):
+
+        A, B  = jax.jacobian(f,(0,1))(s,u)
+        c = f(s,u) - A @ s - B @ u
+        #print("A", A)
+        #print("B", B)
+        #ßprint("c", c)
+        return A, B, c
+def discretize(f, dt):
+    """Discretize continuous-time dynamics `f` via Runge-Kutta integration."""
+
+    def integrator(s, u, dt=dt):
+        k1 = dt * f(s, u)
+        k2 = dt * f(s + k1 / 2, u)
+        k3 = dt * f(s + k2 / 2, u)
+        k4 = dt * f(s + k3, u)
+        return s + (k1 + 2 * k2 + 2 * k3 + k4) / 6
+
+    return integrator
 
 if __name__ == "__main__":
     pass

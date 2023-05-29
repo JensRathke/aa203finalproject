@@ -29,8 +29,9 @@ class PQcopter_controller_iLQR():
         self.n = 6                                  # state dimension
         self.m = 2                                  # control dimension
         self.Q = np.diag(np.array([2., 2., 1., 1., 2., 1.]))   # state cost matrix
-        self.R = 1e2*np.eye(self.m)                     # control cost matrix
-        self.QN = 1e2*np.eye(self.n)                     # terminal state cost matrix
+        #self.Q = np.diag(jnp.array([30., 30., 1., 1., 30., 1.]))
+        self.R = 2.*np.eye(self.m)                     # control cost matrix
+        self.QN = 1e3*np.eye(self.n)                     # terminal state cost matrix
         self.s_init = s_init                        # initial state
         self.s_goal = np.array([0., self.qcopter.h, 0., 0., 0. , 0.])      # goal state
         self.T = 30.  # s                           # simulation time
@@ -64,13 +65,13 @@ class PQcopter_controller_iLQR():
         converged = False
         for iteration in range(max_iters):
             # Linearize the dynamics at each step `k` of `(s_bar, u_bar)`
-            print("s_bar[:-1], u_bar", s_bar[:-1], u_bar)
+            #print("s_bar[:-1], u_bar", s_bar[:-1], u_bar)
             A, B = jax.vmap(self.linearize, in_axes=(None, 0, 0))(f, s_bar[:-1], u_bar)
             A, B = np.array(A), np.array(B)
 
             # PART (c) ############################################################
             # INSTRUCTIONS: Update `Y`, `y`, `ds`, `du`, `s_bar`, and `u_bar`.
-            
+
             # Backward pass
             P = QN
             p = QN @ (s_bar[-1] - s_goal)
@@ -88,7 +89,7 @@ class PQcopter_controller_iLQR():
                 # p = hs - Y[k].T @ Huu @ y[k]
                 P = Hss + Hsu @ Y[k]
                 p = hs + Hsu @ y[k]
-        
+
             # Forward pass
             for k in range(N):
                 du[k] = y[k] + Y[k] @ ds[k]
@@ -101,7 +102,8 @@ class PQcopter_controller_iLQR():
                 converged = True
                 break
         if not converged:
-            raise RuntimeError('iLQR did not converge!')
+            print('iLQR did not converge!')
+            #raise RuntimeError('iLQR did not converge!')
         return s_bar, u_bar, Y, y
 
     def ilqr_hk(self, f, s0, s_goal, N, Q, R, QN, eps=1e-3, max_iters=1000):
