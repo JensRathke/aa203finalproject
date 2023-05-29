@@ -242,6 +242,8 @@ def scp_iteration(f, s0, s_goal, s_prev, u_prev, N, P, Q, R, u_max, ρ):
         constraints.append(cvx.norm_inf(s_cvx[i,4] - s_prev[i,4])<= 1000.)
         constraints.append(cvx.norm_inf(s_cvx[i,5] - s_prev[i,5])<= 1000.)
         constraints.append(cvx.abs(u_cvx[i])<= u_max)
+        #constraints.append(cvx.abs(s_cvx[i,4])<= np.pi/2.)
+        #constraints.append(u_cvx[i]>=0.)
 
     # END PART (c) ############################################################
     objective = cvx.sum(cost_terms)
@@ -330,11 +332,11 @@ def dynamics_jnp(s, u):
             #(u1) / 2.5 - 9.81,
             #-u1 * phi/2.5,
             #(u1)*(1. - jnp.abs(phi)) / 2.5 - 9.81,
-            -(u1)* jnp.sin(phi) /2.5,            #-(u1)* jnp.sin(phi) /2.5, #-(t1 + t2) * np.sin(phi) / self.m,
-             (u1)*jnp.cos(phi) / 2.5 - 9.81, #-1.,# - self.g, #(t1 + t2) * np.cos(phi) / self.m - self.g,
+            -(u1+u2)* jnp.sin(phi) /2.5,            #-(u1)* jnp.sin(phi) /2.5, #-(t1 + t2) * np.sin(phi) / self.m,
+             (u1+u2)*jnp.cos(phi) / 2.5 - 9.81, #-1.,# - self.g, #(t1 + t2) * np.cos(phi) / self.m - self.g,
 
             omega,
-            u2 /Izz,
+            -(u1-u2) /Izz,
             #0.,
             #0.,
 
@@ -359,7 +361,7 @@ n = 6                                # state dimension
 m = 2                              # control dimension
 #s_goal = np.array([0, np.pi, 0, 0])  # desired upright pendulum state
 s_goal = np.array([0, 0, 0, 0, 0, 0])  # desired upright pendulum state
-s_init = np.array([4., 60., 0., 0., -np.pi / 4, -1.])
+s_init = np.array([4., 50., 1., 1., -np.pi / 4, -1.])
 #s_init = np.array([4., 60., 0., 0., 0., 0.])
 s0 = s_init
 #s0 = np.array([6, 4, 0, 0, 0, 0])          # initial downright pendulum state
@@ -369,11 +371,11 @@ P = 1e2*np.eye(n)                    # terminal state cost matrix
 #P[1][1] = P[1][1] * 10
 #P = 1e2*np.eye(n)                    # terminal state cost matrix
 #Q = np.diag([1., 1., 1e-3, 1e-3, 1e-3, 1e-3])  # state cost matrix
-Q = jnp.diag(jnp.array([10., 10., 10., 10., 10., 1.]))
-R = 1e-2*np.eye(m)                   # control cost matrix
+Q = jnp.diag(jnp.array([10., 10., 10., 100., 100., 10.]))
+R = 1e-1*np.eye(m)                   # control cost matrix
 ρ = 10000.
-u_ρ = 55.                             # trust region parameter
-u_max = 125.                           # control effort bound
+u_ρ = 25.                             # trust region parameter
+u_max = 40.                           # control effort bound
 #eps = 5e-1                           # convergence tolerance
 eps = 2.5e-1                           # convergence tolerance
 max_iters = 100                      # maximum number of SCP iterations
