@@ -11,12 +11,13 @@ from controller_test import *
 from controller_iLQR import *
 from controller_SCP import *
 from controller_MPC import *
+from controller_nlMPC import *
 from plotting import *
 from animation import *
 
 class SimulationPlanar:
     """ Simulation for a planar Quadcopter """
-    def __init__(self, quadcopter: QuadcopterPlanar, controller, T, dt):
+    def __init__(self, quadcopter: QuadcopterPlanar, controller, T, dt, k_buffer = 20, output_filename = "test_sim"):
         """
         Functionality
             Initialisation
@@ -29,7 +30,9 @@ class SimulationPlanar:
         self.T = T #s                       # simulation time
         self.dt = dt #s                     # sampling time
         self.K = int(self.T / self.dt) + 1  # number of steps
-        k_buffer = 20                       # additional steps for the pad trajectory
+        k_buffer = k_buffer                 # additional steps for the pad trajectory
+
+        self.output_filename = output_filename
 
         self.s_trajectory = np.zeros((self.K, self.controller.n))
         self.u_trajectory = np.zeros((self.K, self.controller.m))
@@ -40,8 +43,8 @@ class SimulationPlanar:
 
         for k in range(self.K + k_buffer):
             self.pad_trajectory[k, 0] = 6 * np.sin(self.timeline_pad[k])
-            self.pad_trajectory[k, 1] = 0
-            self.pad_trajectory[k, 4] = 0.1 * np.pi * np.sin(self.timeline_pad[k])
+            self.pad_trajectory[k, 1] = 0.1 * np.cos(self.timeline_pad[k] * 3)
+            self.pad_trajectory[k, 4] = 0.06 * np.pi * np.sin(self.timeline_pad[k] * 2)
 
         self.controller.timeline = self.timeline
         self.controller.pad_trajectory = self.pad_trajectory
@@ -54,25 +57,25 @@ class SimulationPlanar:
         """
         # Run the simulation
         total_time = time()
-        self.s_trajectory, self.u_trajectory, total_control_cost, touchdownvels = self.controller.land()
-        total_time = time() - total_time
+        self.s_trajectory, self.u_trajectory, total_control_cost, landed, touchdowntime, touchdownvels = self.controller.land()
+        total_time = touchdowntime - total_time
 
         # Print results
-        print('Total elapsed time:', total_time, 'seconds')
-        print('Total control cost:', total_control_cost)
+        print('total control cost:', round(total_control_cost, 2))
+        print("time to touchdown: ", round(total_time, 2), "s")
         print("touchdown velocities: ", touchdownvels)
-        
+
         # Plot trajectory
-        self.qc.plot_trajectory(self.timeline, self.s_trajectory, "test_nlMPC_trajectory")
+        self.qc.plot_trajectory(self.timeline, self.s_trajectory, self.output_filename + "_trajectory")
 
         # Plot states
-        self.qc.plot_states(self.timeline, self.s_trajectory, "test_nlMPC_states")
+        self.qc.plot_states(self.timeline, self.s_trajectory, self.output_filename + "_states")
         
         # Plot states
-        self.qc.plot_controls(self.timeline, self.u_trajectory, "test_nlMPC_controls")
+        self.qc.plot_controls(self.timeline, self.u_trajectory, self.output_filename + "_controls")
 
         # Create animation
-        self.qc.animate(self.timeline, self.s_trajectory, self.pad_trajectory, "test_nlMPC")
+        self.qc.animate(self.timeline, self.s_trajectory, self.pad_trajectory, self.output_filename)
 
 
 class SimulationCubic:

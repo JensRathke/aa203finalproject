@@ -1,0 +1,237 @@
+#!/usr/bin/env python3
+
+import numpy as np
+import cvxpy as cp
+import jax
+import jax.numpy as jnp
+import matplotlib.pyplot as plt
+import controller_tools as ct
+
+from scipy.linalg import solve_discrete_are
+from functools import partial
+from time import time
+from tqdm.auto import tqdm
+from quadcopter import *
+from plotting import *
+
+
+class QC_controller_nlMPC():
+    """ Controller for a planar quadcopter using non-linear MPC """
+    def __init__(self, quadcopter, state_dim, control_dim, P, Q, R, rs, ru, rT, s_init, s_goal, T, dt):
+        """
+        Functionality
+            Initialisation of a controller for a planar quadcopter using non-linear MPC
+
+        Parameters
+            quadcopter: quadcopter to be controlled
+            s_init: initial state of the quadcopter
+        """
+        self.qc = quadcopter
+
+        self.n = state_dim                  # state dimension
+        self.m = control_dim                # control dimension
+        self.P = P                          # terminal state cost matrix
+        self.Q = Q                          # state cost matrix
+        self.R = R                          # control cost matrix
+        self.eps = 1e-3                     # SCP convergence tolerance
+        self.s_init = s_init                # initial state
+        self.s_goal = s_goal                # goal state
+        self.T = T #s                       # simulation time
+        self.dt = dt #s                     # sampling time
+        self.K = int(self.T / self.dt) + 1  # number of steps
+        self.N_mpc = 10                     # MPC rollout steps
+        self.N_scp = 3                      # Max. number of SCP interations
+        self.rs = rs
+        self.ru = ru
+        self.rT = rT
+
+        self.dynamics = self.qc.discrete_dynamics_jnp
+
+        self.landed = False
+
+        self.timeline = None
+        self.pad_trajectory = None
+
+    def landing_scp(self, s0, k0, s_init = None, u_init = None, convergence_error = False):
+        # Initialize trajectory
+        if s_init is None or u_init is None:
+            s = np.zeros((self.N_mpc + 1, self.n))
+            u = np.zeros((self.N_mpc, self.m))
+            s[0] = s0
+            for k in range(self.N_mpc):
+                s[k+1] = self.dynamics(s[k], u[k])
+        else:
+            s = np.copy(s_init)
+            u = np.copy(u_init)
+
+        converged = False
+        J = np.zeros(self.N_scp + 1)
+
+        for iteration in range(self.N_scp):
+            s, u, J[iteration + 1] = self.scp_iteration(s0, k0, s, u)
+
+            dJ = np.abs(J[iteration + 1] - J[iteration])
+            if dJ < self.eps:
+                converged = True
+                break
+
+        if not converged and convergence_error:
+            raise RuntimeError('SCP did not converge!')
+
+        return s, u
+    
+    def scp_iteration(self, s0, k0, s_prev, u_prev):
+        raise NotImplementedError("Method must be overriden by a subclass of QC_controller_nlMPC")
+
+    def land(self):
+        s_mpc = np.zeros((self.K, self.N_mpc + 1, self.n))
+        u_mpc = np.zeros((self.K, self.N_mpc, self.m))
+
+        s = np.copy(self.s_init)
+
+        total_control_cost = 0.0
+        prc = 0
+        touchdownvels = np.zeros(3)
+        touchdowntime = 0
+
+        s_init = None
+        u_init = None
+        
+        for k in tqdm(range(self.K)):
+            if self.landed == False:
+                s_mpc[k], u_mpc[k] = self.landing_scp(s, k, s_init, u_init)
+            else:
+                s_mpc[k] = self.pad_trajectory[k]
+                u_mpc[k] = 0
+
+            s = self.dynamics(s_mpc[k, 0], u_mpc[k, 0])
+
+            if round(s[0], prc) == round(self.pad_trajectory[k, 0], prc) and round(s[1], prc) == round(self.pad_trajectory[k, 1], prc) and round(s[4], prc) == round(self.pad_trajectory[k, 4], prc):
+                self.landed = True
+                touchdowntime = time()
+                touchdownvels[0] = s[2]
+                touchdownvels[1] = s[3]
+                touchdownvels[2] = s[5]
+
+            total_control_cost += u_mpc[k, 0].T @ self.R @ u_mpc[k, 0]
+
+            u_init = np.concatenate([u_mpc[k, 1:], u_mpc[k, -1:]])
+            s_init = np.concatenate([s_mpc[k, 1:], self.dynamics(s_mpc[k, -1], u_mpc[k, -1]).reshape([1, -1])])
+
+        # Plot trajectory and controls
+        fig, ax = plt.subplots(1, 2, dpi=150, figsize=(15, 5))
+        fig.suptitle('$N = {}$, '.format(self.N_mpc) + r'$N_\mathrm{SCP} = ' + '{}$'.format(self.N_scp))
+
+        for t in range(self.T):
+            ax[0].plot(s_mpc[t, :, 0], s_mpc[t, :, 1], '--*', color='k')
+        ax[0].plot(s_mpc[:, 0, 0], s_mpc[:, 0, 1], '-')
+        ax[0].set_xlabel(r'$x(t)$')
+        ax[0].set_ylabel(r'$y(t)$')
+        ax[0].axis('equal')
+
+        ax[1].plot(u_mpc[:, 0, 0], '-', label=r'$u_1(t)$')
+        ax[1].plot(u_mpc[:, 0, 1], '-', label=r'$u_2(t)$')
+        ax[1].set_xlabel(r'$t$')
+        ax[1].set_ylabel(r'$u(t)$')
+        ax[1].legend()
+
+        suffix = '_Nmpc={}_Nscp={}'.format(self.N_mpc, self.N_scp)
+        plt.savefig('Figures/test_nlmpc' + suffix + '.png', bbox_inches='tight')
+        plt.show()
+        plt.close(fig)
+
+        return s_mpc[:, 0], u_mpc[:, 0], total_control_cost, self.landed, touchdowntime, touchdownvels
+    
+
+class QC_controller_nlMPC_unconst(QC_controller_nlMPC):
+    """
+    Controller for a quadcopter without constraints
+    """
+    def scp_iteration(self, s0, k0, s_prev, u_prev):
+        A, B, c = ct.affinize(self.dynamics, s_prev[:-1], u_prev)
+        A, B, c = np.array(A), np.array(B), np.array(c)
+
+        s_cvx = cp.Variable((self.N_mpc + 1, self.n))
+        u_cvx = cp.Variable((self.N_mpc, self.m))
+
+        # Construction of the convex SCP sub-problem.
+        costs = []
+        constraints = []
+
+        for k in range(self.N_mpc + 1):
+            if k == 0:
+                # initial condition
+                constraints.append(s_cvx[k] == s0)
+
+            if k == self.N_mpc:
+                # terminal cost
+                costs.append(cp.quad_form(s_cvx[k] - self.pad_trajectory[k0 + k], self.P))
+
+            if k <= self.N_mpc and k > 0:
+                # dynamics constraint
+                constraints.append(A[k-1] @ s_cvx[k-1] + B[k-1] @ u_cvx[k-1] + c[k-1] == s_cvx[k])
+
+            if k < self.N_mpc:
+                # stage cost
+                costs.append(cp.quad_form(s_cvx[k] - self.pad_trajectory[k0 + k], self.Q))
+                costs.append(cp.quad_form(u_cvx[k], self.R))
+
+        objective = cp.sum(costs)
+
+        problem = cp.Problem(cp.Minimize(objective), constraints)
+        problem.solve()
+
+        if problem.status != 'optimal':
+            raise RuntimeError('SCP solve failed. Problem status: ' + problem.status)
+        s = s_cvx.value
+        u = u_cvx.value
+        J = problem.objective.value
+
+        return s, u, J
+    
+
+class QC_controller_nlMPC_constr(QC_controller_nlMPC):
+    """
+    Controller for a quadcopter with constraints
+    """
+    def scp_iteration(self, s0, k0, s_prev, u_prev):
+        A, B, c = ct.affinize(self.dynamics, s_prev[:-1], u_prev)
+        A, B, c = np.array(A), np.array(B), np.array(c)
+
+        s_cvx = cp.Variable((self.N_mpc + 1, self.n))
+        u_cvx = cp.Variable((self.N_mpc, self.m))
+
+        # Construction of the convex SCP sub-problem.
+        costs = []
+        constraints = []
+
+        for k in range(self.N_mpc + 1):
+            if k == 0:
+                # initial condition
+                constraints.append(s_cvx[k] == s0)
+
+            if k == self.N_mpc:
+                # terminal cost
+                costs.append(cp.quad_form(s_cvx[k] - self.pad_trajectory[k0 + k], self.P))
+
+            if k <= self.N_mpc and k > 0:
+                # dynamics constraint
+                constraints.append(A[k-1] @ s_cvx[k-1] + B[k-1] @ u_cvx[k-1] + c[k-1] == s_cvx[k])
+
+            if k < self.N_mpc:
+                # stage cost
+                costs.append(cp.quad_form(s_cvx[k] - self.pad_trajectory[k0 + k], self.Q))
+                costs.append(cp.quad_form(u_cvx[k], self.R))
+
+        objective = cp.sum(costs)
+
+        problem = cp.Problem(cp.Minimize(objective), constraints)
+        problem.solve()
+
+        if problem.status != 'optimal':
+            raise RuntimeError('SCP solve failed. Problem status: ' + problem.status)
+        s = s_cvx.value
+        u = u_cvx.value
+        J = problem.objective.value
+
+        return s, u, J

@@ -11,6 +11,7 @@ from controller_test import *
 from controller_iLQR import *
 from controller_SCP import *
 from controller_MPC import *
+from controller_nlMPC import *
 from plotting import *
 from animation import *
 
@@ -32,10 +33,10 @@ if __name__ == '__main__':
 
     quadcopter = QuadcopterPlanar(2.5, 1.0, .5, 0.7)
 
-    s_init = np.array([4., 10., 0., 0., -np.pi / 4, -1.])
+    s_init = np.array([4., 40., 0., 0., -np.pi / 4, -1.])
     s_goal = np.array([0., quadcopter.h, 0., 0., 0. , 0.])
 
-    T = 30 #s
+    T = 20 #s
     dt = 0.05 #s
 
     n = 6
@@ -48,7 +49,7 @@ if __name__ == '__main__':
     ru = 0.1
     rT = 1
 
-    select_controller = 4
+    select_controller = 0
     
     if select_controller == 1:
         print("iLQR controller")
@@ -61,18 +62,21 @@ if __name__ == '__main__':
         controller = PQcopter_controller_MPC(quadcopter, s_init)
     elif select_controller == 4:
         print("non-linear MPC controller")
-        controller = QC_controller_nlMPC(quadcopter, n, m, P, Q, R, rs, ru, rT, s_init, s_goal, T, dt)
+        controller = QC_controller_nlMPC_unconst(quadcopter, n, m, P, Q, R, rs, ru, rT, s_init, s_goal, T, dt)
     elif select_controller == 9:
         print("Test controller")
         controller = PQcopter_controller_test(quadcopter, s_init)
 
-    # if select_controller != 0:
-    #     controller.land()
+    if select_controller != 0:
+        controller.land()
 
-    sim1 = SimulationPlanar(quadcopter, controller, T, dt)
+    controller1 = QC_controller_nlMPC_unconst(quadcopter, n, m, P, Q, R, rs, ru, rT, s_init, s_goal, T, dt)
+
+    sim1 = SimulationPlanar(quadcopter, controller1, T, dt, output_filename="test_nlMPC")
     sim1.simulate()
 
 
+    # Test with a 3D quadcopter
     # quadcopter2 = QuadcopterCubic(2.5, 1.0, .5, 0.7)
 
     # s_init = np.array([4., 0., 60., 0., 0., 0., 0., -np.pi / 4, 0., 0., 0., 0.])
