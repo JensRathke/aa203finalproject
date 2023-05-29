@@ -41,7 +41,7 @@ if __name__ == '__main__':
 
     n = 6
     m = 2
-    
+
     P = 1e2 * np.eye(n)
     Q = np.diag(jnp.array([10., 10., 1., 1., 10., 1.]))
     R = 0.1 * np.eye(m)
@@ -49,8 +49,8 @@ if __name__ == '__main__':
     ru = 0.1
     rT = 1
 
-    select_controller = 0
-    
+    select_controller = 2
+
     if select_controller == 1:
         print("iLQR controller")
         controller = PQcopter_controller_iLQR(quadcopter, s_init)
