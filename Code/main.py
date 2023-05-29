@@ -25,15 +25,15 @@ States
 state of the quadcopter in 2D: (x, y, dx, dy, phi, omega)
 state of the quadcopter in 3D: (x, y, z, dx, dy, dz, phi, theta, psi, dphi, dtheta, dpsi)
 
-state of the landing pad in 2D: (x, y, phi)
-state of the landing pad in 3D: (x, y, z, phi, theta, psi)
+state of the landing pad in 2D: (x, y, 0, 0, phi, 0)
+state of the landing pad in 3D: (x, y, z, 0, 0, 0, phi, theta, psi, 0, 0, 0)
 """
 
 if __name__ == '__main__':
 
     quadcopter = QuadcopterPlanar(2.5, 1.0, .5, 0.7)
 
-    s_init = np.array([4., 40., 0., 0., -0.1 * np.pi, -1.])
+    s_init = np.array([4., 45., 0., 0., -0.1 * np.pi, -1.])
     s_goal = np.array([0., quadcopter.h, 0., 0., 0. , 0.])
 
     T = 20 #s
@@ -42,9 +42,8 @@ if __name__ == '__main__':
     n = 6
     m = 2
 
-    P = 1e2 * np.diag(np.array([1., 1., 1., 1., 100., 1.]))
-    Q = np.diag(np.array([10., 10., 1., 1., 100., 1.]))
-    Q_angle = np.diag(np.array([0., 0., 0., 0., 100., 0.]))
+    P = 1e2 * np.diag(np.array([1., 1., 0., 10., 10., 0.]))
+    Q = np.diag(np.array([10., 10., 2., 40., 50., 10.]))
     R = 0.1 * np.eye(m)
 
     u_max = 40.0
@@ -67,7 +66,7 @@ if __name__ == '__main__':
         controller = PQcopter_controller_MPC(quadcopter, s_init)
     elif select_controller == 4:
         print("non-linear MPC controller")
-        controller = QC_controller_nlMPC_unconst(quadcopter, n, m, P, Q, R, rs, ru, rT, s_init, s_goal, T, dt)
+        controller = QC_controller_nlMPC_unconst(quadcopter, n, m, P, Q, R, s_init, s_goal, T, dt)
     elif select_controller == 9:
         print("Test controller")
         controller = PQcopter_controller_test(quadcopter, s_init)
@@ -75,12 +74,12 @@ if __name__ == '__main__':
     if select_controller != 0:
         controller.land()
 
-    controller1 = QC_controller_nlMPC_unconst(quadcopter, n, m, P, Q, R, rs, ru, rT, s_init, s_goal, T, dt)
+    controller1 = QC_controller_nlMPC_unconst(quadcopter, n, m, P, Q, R, s_init, s_goal, T, dt)
 
     sim1 = SimulationPlanar(quadcopter, controller1, T, dt, output_filename="test_nlMPC_uncontraint")
     # sim1.simulate()
 
-    controller2 = QC_controller_nlMPC_constr(quadcopter, n, m, P, Q, Q_angle, R, rs, ru, rT, s_init, s_goal, T, dt, u_max, u_diff)
+    controller2 = QC_controller_nlMPC_constr(quadcopter, n, m, P, Q, R, rs, ru, rT, s_init, s_goal, T, dt, u_max, u_diff)
 
     sim2 = SimulationPlanar(quadcopter, controller2, T, dt, output_filename="test_nlMPC_constraint")
     sim2.simulate()

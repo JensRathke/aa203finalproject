@@ -16,15 +16,11 @@ from plotting import *
 
 
 class QC_controller_nlMPC():
-    """ Controller for a planar quadcopter using non-linear MPC """
+    """ Controller for a quadcopter using non-linear MPC """
     def __init__(self):
         """
         Functionality
-            Initialisation of a controller for a planar quadcopter using non-linear MPC
-
-        Parameters
-            quadcopter: quadcopter to be controlled
-            s_init: initial state of the quadcopter
+            Initialisation of a controller for a quadcopter using non-linear MPC
         """
         raise NotImplementedError("Method must be overriden by a subclass of QC_controller_nlMPC")
 
@@ -66,7 +62,7 @@ class QC_controller_nlMPC():
         s = np.copy(self.s_init)
 
         total_control_cost = 0.0
-        tol = 0.5
+        tol = 0.1
         touchdownvels = np.zeros(3)
         touchdowntime = 0
 
@@ -123,10 +119,10 @@ class QC_controller_nlMPC_unconst(QC_controller_nlMPC):
     """
     Controller for a quadcopter without constraints
     """
-    def __init__(self, quadcopter, state_dim, control_dim, P, Q, R, rs, ru, rT, s_init, s_goal, T, dt):
+    def __init__(self, quadcopter, state_dim, control_dim, P, Q, R, s_init, s_goal, T, dt):
         """
         Functionality
-            Initialisation of a controller for a planar quadcopter using non-linear MPC
+            Initialisation of a controller for a quadcopter using non-linear MPC
 
         Parameters
             quadcopter: quadcopter to be controlled
@@ -147,11 +143,6 @@ class QC_controller_nlMPC_unconst(QC_controller_nlMPC):
         self.K = int(self.T / self.dt) + 1  # number of steps
         self.N_mpc = 10                     # MPC rollout steps
         self.N_scp = 3                      # Max. number of SCP interations
-
-        # Controller constraints
-        self.rs = rs
-        self.ru = ru
-        self.rT = rT
 
         self.dynamics = self.qc.discrete_dynamics_jnp
 
@@ -208,10 +199,10 @@ class QC_controller_nlMPC_constr(QC_controller_nlMPC):
         u_max: maximum torque of the rotors
         u_diff: maximum change of torque of the rotors
     """
-    def __init__(self, quadcopter, state_dim, control_dim, P, Q, Q_angle, R, rs, ru, rT, s_init, s_goal, T, dt, u_max = np.inf, u_diff = np.inf):
+    def __init__(self, quadcopter, state_dim, control_dim, P, Q, R, rs, ru, rT, s_init, s_goal, T, dt, u_max = np.inf, u_diff = np.inf):
         """
         Functionality
-            Initialisation of a controller for a planar quadcopter using non-linear MPC
+            Initialisation of a controller for a quadcopter using non-linear MPC
 
         Parameters
             quadcopter: quadcopter to be controlled
@@ -223,7 +214,6 @@ class QC_controller_nlMPC_constr(QC_controller_nlMPC):
         self.m = control_dim                # control dimension
         self.P = P                          # terminal state cost matrix
         self.Q = Q                          # state cost matrix
-        self.Q_angle = Q_angle              # state cost matrix
         self.R = R                          # control cost matrix
         self.eps = 1e-3                     # SCP convergence tolerance
         self.s_init = s_init                # initial state
@@ -276,7 +266,6 @@ class QC_controller_nlMPC_constr(QC_controller_nlMPC):
 
                 # stage cost
                 costs.append(cp.quad_form(s_cvx[k] - self.pad_trajectory[k0 + k], self.Q))
-                costs.append(cp.quad_form(s_cvx[k], self.Q_angle))
                 costs.append(cp.quad_form(u_cvx[k], self.R))
 
                 # control contraints

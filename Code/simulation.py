@@ -42,9 +42,9 @@ class SimulationPlanar:
         self.pad_trajectory = np.zeros((self.K + k_buffer, self.controller.n)) # pad state [x, y, 0, 0, phi, 0]
 
         for k in range(self.K + k_buffer):
-            self.pad_trajectory[k, 0] = 6 * np.sin(self.timeline_pad[k])
-            self.pad_trajectory[k, 1] = 0.1 * np.cos(self.timeline_pad[k] * 3)
-            self.pad_trajectory[k, 4] = 0.06 * np.pi * np.sin(self.timeline_pad[k] * 2)
+            self.pad_trajectory[k, 0] = 6 * np.cos(self.timeline_pad[k] / 4)
+            self.pad_trajectory[k, 1] = 0.1 * np.cos(self.timeline_pad[k] * 3 / 4)
+            self.pad_trajectory[k, 4] = 0.06 * np.pi * np.sin(self.timeline_pad[k] * 2 / 4)
 
         self.controller.timeline = self.timeline
         self.controller.pad_trajectory = self.pad_trajectory
@@ -72,7 +72,7 @@ class SimulationPlanar:
         self.qc.plot_states(self.timeline, self.s_trajectory, self.output_filename + "_states", ["x", "y", "dx", "dy", "phi", "omega"])
         
         # Plot states
-        self.qc.plot_controls(self.timeline, self.u_trajectory, self.output_filename + "_controls", [r"T_1", r"T_2"])
+        self.qc.plot_controls(self.timeline, self.u_trajectory, self.output_filename + "_controls", [r"$T_1$", r"$T_2$"])
 
         # Create animation
         self.qc.animate(self.timeline, self.s_trajectory, self.pad_trajectory, self.output_filename)
