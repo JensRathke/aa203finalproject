@@ -44,16 +44,15 @@ class QuadcopterPlanar:
             derivative of the state with respect to time
         """
         x, y, dx, dy, phi, omega = s
-        # t1, t2 = u
-        u1, u2 = u
+        t1, t2 = u
 
-        ds = np.array([
+        ds = jnp.array([
             dx,
             dy,
-            -u1 * np.sin(phi) / self.m, #-(t1 + t2) * np.sin(phi) / self.m,
-            u1 * np.cos(phi) / self.m - self.g, #(t1 + t2) * np.cos(phi) / self.m - self.g,
+            -(t1 + t2) * jnp.sin(phi) / self.m,
+            (t1 + t2) * jnp.cos(phi) / self.m - self.g,
             omega,
-            u2 / self.Izz #(t1 - t2) * self.l / (2 * self.Izz)
+            (t2 - t1) * self.l / self.Izz
         ])
 
         return ds
@@ -71,16 +70,15 @@ class QuadcopterPlanar:
             derivative of the state with respect to time
         """
         x, y, dx, dy, phi, omega = s
-        # t1, t2 = u
-        u1, u2 = u
+        t1, t2 = u
 
         ds = jnp.array([
             dx,
             dy,
-            -u1 * jnp.sin(phi) / self.m, #-(t1 + t2) * jnp.sin(phi) / self.m,
-            u1 * jnp.cos(phi) / self.m - self.g, #(t1 + t2) * jnp.cos(phi) / self.m - self.g,
+            -(t1 + t2) * jnp.sin(phi) / self.m,
+            (t1 + t2) * jnp.cos(phi) / self.m - self.g,
             omega,
-            u2 / self.Izz #(t1 - t2) * self.l / (2 * self.Izz)
+            (t2 - t1) * self.l / self.Izz
         ])
 
         return ds
@@ -98,16 +96,15 @@ class QuadcopterPlanar:
             derivative of the state with respect to time
         """
         x, y, dx, dy, phi, omega = s
-        # t1, t2 = u
-        u1, u2 = u
+        t1, t2 = u
 
-        ds = np.array([
+        ds = jnp.array([
             dx,
             dy,
-            -u1 * np.sin(phi) / self.m, #-(t1 + t2) * np.sin(phi) / self.m,
-            u1 * np.cos(phi) / self.m - self.g, #(t1 + t2) * np.cos(phi) / self.m - self.g,
+            -(t1 + t2) * jnp.sin(phi) / self.m,
+            (t1 + t2) * jnp.cos(phi) / self.m - self.g,
             omega,
-            u2 / self.Izz #(t1 - t2) * self.l / (2 * self.Izz)
+            (t2 - t1) * self.l / self.Izz
         ])
 
         return s + ds * dt
@@ -119,14 +116,13 @@ class QuadcopterPlanar:
 
         Parameters
             s: state (x, y, dx, dy, phi, omega)
-            u: control input (u1, u2)
+            u: control input (t1, t2)
 
         Returns
             derivative of the state with respect to time
         """
         x, y, dx, dy, phi, omega = s
         t1, t2 = u
-        # u1, u2 = u
 
         ds = jnp.array([
             dx,
@@ -136,15 +132,6 @@ class QuadcopterPlanar:
             omega,
             (t2 - t1) * self.l / self.Izz
         ])
-
-        # ds = jnp.array([
-        #     dx,
-        #     dy,
-        #     -u1 * jnp.sin(phi) / self.m, #-(t1 + t2) * np.sin(phi) / self.m,
-        #     u1 * jnp.cos(phi) / self.m - self.g, #(t1 + t2) * np.cos(phi) / self.m - self.g,
-        #     omega,
-        #     u2 / self.Izz #(t1 - t2) * self.l / (2 * self.Izz)
-        # ])
 
         return s + ds * dt
 

@@ -43,7 +43,7 @@ if __name__ == '__main__':
     m = 2
 
     P = 1e2 * np.diag(np.array([1., 1., 0., 10., 10., 0.]))
-    Q = np.diag(np.array([10., 10., 2., 40., 50., 10.]))
+    Q = np.diag(np.array([5., 5., 2., 40., 50., 10.]))
     R = 0.1 * np.eye(m)
 
     u_max = 40.0
@@ -77,7 +77,7 @@ if __name__ == '__main__':
     controller1 = QC_controller_nlMPC_unconst(quadcopter, n, m, P, Q, R, s_init, s_goal, T, dt)
 
     sim1 = SimulationPlanar(quadcopter, controller1, T, dt, output_filename="test_nlMPC_uncontraint")
-    # sim1.simulate()
+    sim1.simulate()
 
     controller2 = QC_controller_nlMPC_constr(quadcopter, n, m, P, Q, R, rs, ru, rT, s_init, s_goal, T, dt, u_max, u_diff)
 
