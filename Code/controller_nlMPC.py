@@ -17,7 +17,7 @@ from plotting import *
 
 class QC_controller_nlMPC():
     """ Controller for a planar quadcopter using non-linear MPC """
-    def __init__(self, quadcopter, state_dim, control_dim, P, Q, R, rs, ru, rT, s_init, s_goal, T, dt):
+    def __init__(self):
         """
         Functionality
             Initialisation of a controller for a planar quadcopter using non-linear MPC
@@ -26,31 +26,7 @@ class QC_controller_nlMPC():
             quadcopter: quadcopter to be controlled
             s_init: initial state of the quadcopter
         """
-        self.qc = quadcopter
-
-        self.n = state_dim                  # state dimension
-        self.m = control_dim                # control dimension
-        self.P = P                          # terminal state cost matrix
-        self.Q = Q                          # state cost matrix
-        self.R = R                          # control cost matrix
-        self.eps = 1e-3                     # SCP convergence tolerance
-        self.s_init = s_init                # initial state
-        self.s_goal = s_goal                # goal state
-        self.T = T #s                       # simulation time
-        self.dt = dt #s                     # sampling time
-        self.K = int(self.T / self.dt) + 1  # number of steps
-        self.N_mpc = 10                     # MPC rollout steps
-        self.N_scp = 3                      # Max. number of SCP interations
-        self.rs = rs
-        self.ru = ru
-        self.rT = rT
-
-        self.dynamics = self.qc.discrete_dynamics_jnp
-
-        self.landed = False
-
-        self.timeline = None
-        self.pad_trajectory = None
+        raise NotImplementedError("Method must be overriden by a subclass of QC_controller_nlMPC")
 
     def landing_scp(self, s0, k0, s_init = None, u_init = None, convergence_error = False):
         # Initialize trajectory
@@ -90,7 +66,7 @@ class QC_controller_nlMPC():
         s = np.copy(self.s_init)
 
         total_control_cost = 0.0
-        prc = 0
+        tol = 0.5
         touchdownvels = np.zeros(3)
         touchdowntime = 0
 
@@ -106,12 +82,12 @@ class QC_controller_nlMPC():
 
             s = self.dynamics(s_mpc[k, 0], u_mpc[k, 0])
 
-            if round(s[0], prc) == round(self.pad_trajectory[k, 0], prc) and round(s[1], prc) == round(self.pad_trajectory[k, 1], prc) and round(s[4], prc) == round(self.pad_trajectory[k, 4], prc):
+            if np.abs(s[0] - self.pad_trajectory[k, 0]) < tol and np.abs(s[1] - self.pad_trajectory[k, 1]) < tol and np.abs(s[4] - self.pad_trajectory[k, 4]) < tol:
                 self.landed = True
                 touchdowntime = time()
-                touchdownvels[0] = s[2]
-                touchdownvels[1] = s[3]
-                touchdownvels[2] = s[5]
+                touchdownvels[0] = s_mpc[k, 0, 2]
+                touchdownvels[1] = s_mpc[k, 0, 3]
+                touchdownvels[2] = s_mpc[k, 0, 5]
 
             total_control_cost += u_mpc[k, 0].T @ self.R @ u_mpc[k, 0]
 
@@ -147,6 +123,43 @@ class QC_controller_nlMPC_unconst(QC_controller_nlMPC):
     """
     Controller for a quadcopter without constraints
     """
+    def __init__(self, quadcopter, state_dim, control_dim, P, Q, R, rs, ru, rT, s_init, s_goal, T, dt):
+        """
+        Functionality
+            Initialisation of a controller for a planar quadcopter using non-linear MPC
+
+        Parameters
+            quadcopter: quadcopter to be controlled
+            s_init: initial state of the quadcopter
+        """
+        self.qc = quadcopter
+
+        self.n = state_dim                  # state dimension
+        self.m = control_dim                # control dimension
+        self.P = P                          # terminal state cost matrix
+        self.Q = Q                          # state cost matrix
+        self.R = R                          # control cost matrix
+        self.eps = 1e-3                     # SCP convergence tolerance
+        self.s_init = s_init                # initial state
+        self.s_goal = s_goal                # goal state
+        self.T = T #s                       # simulation time
+        self.dt = dt #s                     # sampling time
+        self.K = int(self.T / self.dt) + 1  # number of steps
+        self.N_mpc = 10                     # MPC rollout steps
+        self.N_scp = 3                      # Max. number of SCP interations
+
+        # Controller constraints
+        self.rs = rs
+        self.ru = ru
+        self.rT = rT
+
+        self.dynamics = self.qc.discrete_dynamics_jnp
+
+        self.landed = False
+
+        self.timeline = None
+        self.pad_trajectory = None
+
     def scp_iteration(self, s0, k0, s_prev, u_prev):
         A, B, c = ct.affinize(self.dynamics, s_prev[:-1], u_prev)
         A, B, c = np.array(A), np.array(B), np.array(c)
@@ -167,11 +180,10 @@ class QC_controller_nlMPC_unconst(QC_controller_nlMPC):
                 # terminal cost
                 costs.append(cp.quad_form(s_cvx[k] - self.pad_trajectory[k0 + k], self.P))
 
-            if k <= self.N_mpc and k > 0:
-                # dynamics constraint
-                constraints.append(A[k-1] @ s_cvx[k-1] + B[k-1] @ u_cvx[k-1] + c[k-1] == s_cvx[k])
-
             if k < self.N_mpc:
+                # dynamics constraint
+                constraints.append(A[k] @ s_cvx[k] + B[k] @ u_cvx[k] + c[k] == s_cvx[k+1])
+
                 # stage cost
                 costs.append(cp.quad_form(s_cvx[k] - self.pad_trajectory[k0 + k], self.Q))
                 costs.append(cp.quad_form(u_cvx[k], self.R))
@@ -193,7 +205,49 @@ class QC_controller_nlMPC_unconst(QC_controller_nlMPC):
 class QC_controller_nlMPC_constr(QC_controller_nlMPC):
     """
     Controller for a quadcopter with constraints
+        u_max: maximum torque of the rotors
+        u_diff: maximum change of torque of the rotors
     """
+    def __init__(self, quadcopter, state_dim, control_dim, P, Q, Q_angle, R, rs, ru, rT, s_init, s_goal, T, dt, u_max = np.inf, u_diff = np.inf):
+        """
+        Functionality
+            Initialisation of a controller for a planar quadcopter using non-linear MPC
+
+        Parameters
+            quadcopter: quadcopter to be controlled
+            s_init: initial state of the quadcopter
+        """
+        self.qc = quadcopter
+
+        self.n = state_dim                  # state dimension
+        self.m = control_dim                # control dimension
+        self.P = P                          # terminal state cost matrix
+        self.Q = Q                          # state cost matrix
+        self.Q_angle = Q_angle              # state cost matrix
+        self.R = R                          # control cost matrix
+        self.eps = 1e-3                     # SCP convergence tolerance
+        self.s_init = s_init                # initial state
+        self.s_goal = s_goal                # goal state
+        self.T = T #s                       # simulation time
+        self.dt = dt #s                     # sampling time
+        self.K = int(self.T / self.dt) + 1  # number of steps
+        self.N_mpc = 10                     # MPC rollout steps
+        self.N_scp = 3                      # Max. number of SCP interations
+
+        # Controller constraints
+        self.rs = rs
+        self.ru = ru
+        self.rT = rT
+        self.u_max = u_max
+        self.u_diff = u_diff
+
+        self.dynamics = self.qc.discrete_dynamics_jnp
+
+        self.landed = False
+
+        self.timeline = None
+        self.pad_trajectory = None
+
     def scp_iteration(self, s0, k0, s_prev, u_prev):
         A, B, c = ct.affinize(self.dynamics, s_prev[:-1], u_prev)
         A, B, c = np.array(A), np.array(B), np.array(c)
@@ -206,6 +260,8 @@ class QC_controller_nlMPC_constr(QC_controller_nlMPC):
         constraints = []
 
         for k in range(self.N_mpc + 1):
+            # Global constraints
+            
             if k == 0:
                 # initial condition
                 constraints.append(s_cvx[k] == s0)
@@ -214,14 +270,18 @@ class QC_controller_nlMPC_constr(QC_controller_nlMPC):
                 # terminal cost
                 costs.append(cp.quad_form(s_cvx[k] - self.pad_trajectory[k0 + k], self.P))
 
-            if k <= self.N_mpc and k > 0:
-                # dynamics constraint
-                constraints.append(A[k-1] @ s_cvx[k-1] + B[k-1] @ u_cvx[k-1] + c[k-1] == s_cvx[k])
-
             if k < self.N_mpc:
+                # dynamics constraint
+                constraints.append(A[k] @ s_cvx[k] + B[k] @ u_cvx[k] + c[k] == s_cvx[k+1])
+
                 # stage cost
                 costs.append(cp.quad_form(s_cvx[k] - self.pad_trajectory[k0 + k], self.Q))
+                costs.append(cp.quad_form(s_cvx[k], self.Q_angle))
                 costs.append(cp.quad_form(u_cvx[k], self.R))
+
+                # control contraints
+                constraints.append(cp.abs(u_cvx[k]) <= self.u_max)
+                constraints.append(cp.norm(u_cvx[k] - u_prev[k], 'inf') <= self.u_diff)    
 
         objective = cp.sum(costs)
 

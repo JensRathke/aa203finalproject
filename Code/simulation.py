@@ -69,10 +69,10 @@ class SimulationPlanar:
         self.qc.plot_trajectory(self.timeline, self.s_trajectory, self.output_filename + "_trajectory")
 
         # Plot states
-        self.qc.plot_states(self.timeline, self.s_trajectory, self.output_filename + "_states")
+        self.qc.plot_states(self.timeline, self.s_trajectory, self.output_filename + "_states", ["x", "y", "dx", "dy", "phi", "omega"])
         
         # Plot states
-        self.qc.plot_controls(self.timeline, self.u_trajectory, self.output_filename + "_controls")
+        self.qc.plot_controls(self.timeline, self.u_trajectory, self.output_filename + "_controls", [r"T_1", r"T_2"])
 
         # Create animation
         self.qc.animate(self.timeline, self.s_trajectory, self.pad_trajectory, self.output_filename)
