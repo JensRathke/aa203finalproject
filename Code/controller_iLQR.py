@@ -25,17 +25,17 @@ class PQcopter_controller_iLQR():
             s_init: initial state of the quadcopter
         """
         self.qcopter = qcopter
-
+        s0 = np.array([4., 50., 0., 0.,-np.pi / 4, 0.])
         self.n = 6                                  # state dimension
         self.m = 2                                  # control dimension
-        self.Q = np.diag(np.array([2., 2., 1., 1., 2., 1.]))   # state cost matrix
+        self.Q = np.diag(np.array([10., 10., 100., 100.,100., 100.]))    # state cost matrix
         #self.Q = np.diag(jnp.array([30., 30., 1., 1., 30., 1.]))
-        self.R = 2.*np.eye(self.m)                     # control cost matrix
+        self.R = 1e1*np.eye(self.m)                     # control cost matrix
         self.QN = 1e3*np.eye(self.n)                     # terminal state cost matrix
-        self.s_init = s_init                        # initial state
-        self.s_goal = np.array([0., self.qcopter.h, 0., 0., 0. , 0.])      # goal state
-        self.T = 30.  # s                           # simulation time
-        self.dt = 0.1 # s                           # sampling time
+        self.s_init = s0#s_init                        # initial state
+        self.s_goal = np.array([0., 0, 0., 0., 0. , 0.])      # goal state
+        self.T = 20.  # s                           # simulation time
+        self.dt = 0.05 # s                           # sampling time
 
     def linearize(self, f, s, u):
         A, B = jax.jacobian(f, (0, 1))(s, u)

@@ -35,6 +35,7 @@ if __name__ == '__main__':
 
     s_init = np.array([4., 45., 0., 0., -0.1 * np.pi, -1.])
     s_goal = np.array([0., quadcopter.h, 0., 0., 0. , 0.])
+    #s_init = np.array([4., 45., 0., 0., 0., 0.])
 
     T = 20 #s
     dt = 0.05 #s
@@ -53,7 +54,7 @@ if __name__ == '__main__':
     ru = 0.1
     rT = np.inf
 
-    select_controller = 0
+    select_controller = 2
 
     if select_controller == 1:
         print("iLQR controller")
@@ -77,12 +78,12 @@ if __name__ == '__main__':
     controller1 = QC_controller_nlMPC_unconst(quadcopter, n, m, P, Q, R, s_init, s_goal, T, dt)
 
     sim1 = SimulationPlanar(quadcopter, controller1, T, dt, output_filename="test_nlMPC_uncontraint")
-    sim1.simulate()
+    #sim1.simulate()
 
     controller2 = QC_controller_nlMPC_constr(quadcopter, n, m, P, Q, R, rs, ru, rT, s_init, s_goal, T, dt, u_max, u_diff)
 
     sim2 = SimulationPlanar(quadcopter, controller2, T, dt, output_filename="test_nlMPC_constraint")
-    sim2.simulate()
+    #sim2.simulate()
 
 
     # Test with a 3D quadcopter

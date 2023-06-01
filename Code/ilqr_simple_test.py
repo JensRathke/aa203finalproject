@@ -280,11 +280,11 @@ def dynamics_jnp(s, u):
             #(u1) / 2.5 - 9.81,
             #-u1 * phi/2.5,
             #(u1)*(1. - jnp.abs(phi)) / 2.5 - 9.81,
-            -(u1)* jnp.sin(phi) /2.5,            #-(u1)* jnp.sin(phi) /2.5, #-(t1 + t2) * np.sin(phi) / self.m,
-             (u1)*jnp.cos(phi) / 2.5 - 9.81, #-1.,# - self.g, #(t1 + t2) * np.cos(phi) / self.m - self.g,
+            -(u1+u2)* jnp.sin(phi) /2.5,            #-(u1)* jnp.sin(phi) /2.5, #-(t1 + t2) * np.sin(phi) / self.m,
+             (u1+u2)*jnp.cos(phi) / 2.5 - 9.81, #-1.,# - self.g, #(t1 + t2) * np.cos(phi) / self.m - self.g,
 
             omega,
-            -(-u2) /Izz,
+            -(u1-u2) /Izz,
             #0.,
             #0.,
 
@@ -300,7 +300,7 @@ R = 1e1*np.eye(m)                          # control cost matrix
 QN = 1e3*np.eye(n)                          # terminal state cost matrix
 s0 = np.array([4., 50., 0., 0.,-np.pi / 4, 0.])             # initial state
 s_goal = np.array([0., 0., 0., 0., 0.,0.])      # goal state
-T = 10.                                     # simulation time
+T = 20.                                     # simulation time
 dt = 0.1                                    # sampling time
 #animate = True                             # flag for animation
 closed_loop = False                         # flag for closed-loop control
