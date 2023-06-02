@@ -12,6 +12,7 @@ from controller_iLQR import *
 from controller_SCP import *
 from controller_MPC import *
 from controller_nlMPC import *
+from controller_a_scp import *
 from plotting import *
 from animation import *
 
@@ -55,6 +56,7 @@ if __name__ == '__main__':
     rT = np.inf
 
     select_controller = 0
+    select_controller = 0
 
     if select_controller == 1:
         print("iLQR controller")
@@ -68,6 +70,9 @@ if __name__ == '__main__':
     elif select_controller == 4:
         print("non-linear MPC controller")
         controller = QC_controller_nlMPC_unconst(quadcopter, n, m, P, Q, R, s_init, s_goal, T, dt)
+    elif select_controller == 5:
+        print("SCP controller")
+        controller = QC_controller_SCP_unconst(quadcopter, n, m, P, Q, R, s_init, s_goal, T, dt)
     elif select_controller == 9:
         print("Test controller")
         controller = PQcopter_controller_test(quadcopter, s_init)
@@ -78,12 +83,17 @@ if __name__ == '__main__':
     controller1 = QC_controller_nlMPC_unconst(quadcopter, n, m, P, Q, R, s_init, s_goal, T, dt)
 
     sim1 = SimulationPlanar(quadcopter, controller1, T, dt, output_filename="test_nlMPC_uncontraint")
-    #sim1.simulate()
+    sim1.simulate()
 
     controller2 = QC_controller_nlMPC_constr(quadcopter, n, m, P, Q, R, rs, ru, rT, s_init, s_goal, T, dt, u_max, u_diff)
 
     sim2 = SimulationPlanar(quadcopter, controller2, T, dt, output_filename="test_nlMPC_constraint")
     sim2.simulate()
+    sim2.simulate()
+
+    controller3 = QC_controller_SCP_unconst(quadcopter, n, m, P, Q, R, s_init, s_goal, T, dt)
+    sim3 = SimulationPlanar(quadcopter, controller3, T, dt, output_filename="test_SCP_uncontraint")
+    sim3.simulate()
 
 
     # Test with a 3D quadcopter
