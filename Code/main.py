@@ -54,7 +54,7 @@ if __name__ == '__main__':
     ru = 0.1
     rT = np.inf
 
-    select_controller = 2
+    select_controller = 0
 
     if select_controller == 1:
         print("iLQR controller")
@@ -83,7 +83,7 @@ if __name__ == '__main__':
     controller2 = QC_controller_nlMPC_constr(quadcopter, n, m, P, Q, R, rs, ru, rT, s_init, s_goal, T, dt, u_max, u_diff)
 
     sim2 = SimulationPlanar(quadcopter, controller2, T, dt, output_filename="test_nlMPC_constraint")
-    #sim2.simulate()
+    sim2.simulate()
 
 
     # Test with a 3D quadcopter

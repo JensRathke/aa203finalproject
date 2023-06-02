@@ -78,9 +78,9 @@ class QC_controller_nlMPC():
 
             s = self.dynamics(s_mpc[k, 0], u_mpc[k, 0])
 
-            if np.abs(s[0] - self.pad_trajectory[k, 0]) < tol and np.abs(s[1] - self.pad_trajectory[k, 1]) < tol and np.abs(s[4] - self.pad_trajectory[k, 4]) < tol:
+            if self.landed == False and np.abs(s[0] - self.pad_trajectory[k, 0]) < tol and np.abs(s[1] - self.pad_trajectory[k, 1]) < tol and np.abs(s[4] - self.pad_trajectory[k, 4]) < tol:
                 self.landed = True
-                touchdowntime = time()
+                touchdowntime = self.timeline[k]
                 touchdownvels[0] = s_mpc[k, 0, 2]
                 touchdownvels[1] = s_mpc[k, 0, 3]
                 touchdownvels[2] = s_mpc[k, 0, 5]

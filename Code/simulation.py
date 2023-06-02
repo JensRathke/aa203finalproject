@@ -58,12 +58,13 @@ class SimulationPlanar:
         # Run the simulation
         total_time = time()
         self.s_trajectory, self.u_trajectory, total_control_cost, landed, touchdowntime, touchdownvels = self.controller.land()
-        total_time = touchdowntime - total_time
+        total_time = time() - total_time
 
         # Print results
         print('total control cost:', round(total_control_cost, 2))
-        print("time to touchdown: ", round(total_time, 2), "s")
+        print("time to touchdown: ", touchdowntime, "s")
         print("touchdown velocities: ", touchdownvels)
+        print("time to simulate: ", round(total_time, 2), "s")
 
         # Plot trajectory
         self.qc.plot_trajectory(self.timeline, self.s_trajectory, self.output_filename + "_trajectory")
@@ -71,11 +72,25 @@ class SimulationPlanar:
         # Plot states
         self.qc.plot_states(self.timeline, self.s_trajectory, self.output_filename + "_states", ["x", "y", "dx", "dy", "phi", "omega"])
         
-        # Plot states
+        # Plot controls
         self.qc.plot_controls(self.timeline, self.u_trajectory, self.output_filename + "_controls", [r"$T_1$", r"$T_2$"])
+
+        # Plot state costs
+        self.plot_statecosts()
 
         # Create animation
         self.qc.animate(self.timeline, self.s_trajectory, self.pad_trajectory, self.output_filename)
+
+    def plot_statecosts(self):
+        costs = np.zeros((self.timeline.size, self.controller.n + 1))
+
+        for statevarible in range(self.controller.n):
+            costs[:, statevarible] = (self.s_trajectory[:, statevarible] - self.pad_trajectory[0 : self.timeline.size, statevarible]) ** 2 * self.controller.Q[statevarible, statevarible]
+
+        for t in range(self.timeline.size):
+            costs[t, -1] = (self.s_trajectory[t] - self.pad_trajectory[t]).T @ self.controller.Q @ (self.s_trajectory[t] - self.pad_trajectory[t])
+
+        plot_1x1(self.output_filename + "_statecosts", self.timeline, costs.T, "State Costs", show_legend=True, legend_labels=["x", "y", "dx", "dy", "phi", "omega", "total cost"])
 
 
 class SimulationCubic:
