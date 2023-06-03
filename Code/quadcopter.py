@@ -83,6 +83,33 @@ class QuadcopterPlanar:
 
         return ds
     
+    def dynamics_ode(self, s, t, u):
+        """
+        Functionality
+            Continuous-time quadcopter dynamics
+
+        Parameters
+            s: state (x, y, dx, dy, phi, omega)
+            t
+            u: control input (u1, u2)
+
+        Returns
+            derivative of the state with respect to time
+        """
+        x, y, dx, dy, phi, omega = s
+        t1, t2 = u
+
+        ds = jnp.array([
+            dx,
+            dy,
+            -(t1 + t2) * jnp.sin(phi) / self.m,
+            (t1 + t2) * jnp.cos(phi) / self.m - self.g,
+            omega,
+            (t2 - t1) * self.l / self.Izz
+        ])
+
+        return ds
+    
     def discrete_dynamics(self, s, u, dt = 0.1):
         """
         Functionality
@@ -134,55 +161,6 @@ class QuadcopterPlanar:
         ])
 
         return s + ds * dt
-
-    def animate(self, t, s, sg, filename):
-        """
-        Functionality
-            Animate a quadcopter trajectory
-
-        Parameters
-            t: time
-            s: state trajectory (x, y, dx, dy, psi, omega)
-            sg: goal state trajectory (x, y, dx, dy, psi, omega)
-            filename: name of the output file without file-extension
-        """
-        animate_planar_quad(filename, t, s[:, 0], s[:, 1], s[:, 4], sg[:, 0], sg[:, 1], sg[:, 4], self.l, self.r, self.h)
-
-    def plot_states(self, t, s, filename, plot_titles=["", "", "", "", "", ""], y_labels=["", "", "", "", "", ""]):
-        """
-        Functionality
-            Plot quadcopter states
-
-        Parameters
-            t: time
-            s: state trajectory (x, y, dx, dy, psi, omega)
-            filename: name of the output file without file-extension
-        """
-        plot_3x2(filename, t, s[:, 0], s[:, 1], s[:, 2], s[:, 3], s[:, 4], s[:, 5], "trajectory", plot_titles=plot_titles, ylabels=y_labels)
-
-    def plot_controls(self, t, u, filename, plot_titles=["", ""], y_labels=["", ""]):
-        """
-        Functionality
-            Plot a quadcopter trajectory
-
-        Parameters
-            t: time
-            u: controls (t1, t2)
-            filename: name of the output file without file-extension
-        """
-        plot_1x2(filename, t, u[:, 0], u[:, 1], "controls", plot_titles=plot_titles, ylabels=y_labels)
-
-    def plot_trajectory(self, t, s, filename):
-        """
-        Functionality
-            Plot a quadcopter trajectory
-
-        Parameters
-            t: time
-            s: state trajectory (x, y, dx, dy, psi, omega)
-            filename: name of the output file without file-extension
-        """
-        plot_trajectory(filename, s[:, 0], s[:, 1], "trajectory")
 
 class QuadcopterCubic:
     """ Cubic Quadcopter """
@@ -301,55 +279,6 @@ class QuadcopterCubic:
 
         return s + ds * dt
     
-    def animate(self, t, s, sg, filename):
-        """
-        Functionality
-            Animate a quadcopter trajectory
-
-        Parameters
-            t: time
-            s: state trajectory (x, y, dx, dy, psi, omega)
-            sg: goal state trajectory (x, y, dx, dy, psi, omega)
-            filename: name of the output file without file-extension
-        """
-        pass
-
-    def plot_states(self, t, s, filename, plot_titles=["", "", "", "", "", ""], y_labels=["", "", "", "", "", ""]):
-        """
-        Functionality
-            Plot quadcopter states
-
-        Parameters
-            t: time
-            s: state trajectory (x, y, dx, dy, psi, omega)
-            filename: name of the output file without file-extension
-        """
-        pass
-
-    def plot_controls(self, t, u, filename, plot_titles=["", ""], y_labels=["", ""]):
-        """
-        Functionality
-            Plot a quadcopter trajectory
-
-        Parameters
-            t: time
-            u: controls (t1, t2)
-            filename: name of the output file without file-extension
-        """
-        pass
-
-    def plot_trajectory(self, t, s, filename):
-        """
-        Functionality
-            Plot a quadcopter trajectory
-
-        Parameters
-            t: time
-            s: state trajectory (x, y, dx, dy, psi, omega)
-            filename: name of the output file without file-extension
-        """
-        pass
-
 if __name__ == "__main__":
     testcopter = QuadcopterPlanar()
 
@@ -367,4 +296,3 @@ if __name__ == "__main__":
     print(s[:, 4])
     print(sg[:, 4])
 
-    testcopter.animate(t, s, sg, "testcopter")

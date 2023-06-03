@@ -6,8 +6,6 @@ Autonomous Systems Lab (ASL), Stanford University
 
 import time
 
-from animations import animate_cartpole
-
 import jax
 import jax.numpy as jnp
 
@@ -21,7 +19,7 @@ from animation import *
 
 from scipy.integrate import odeint
 
-def plot_states( t, s, filename, plot_titles=["", "", "", "", "", ""], y_labels=["", "", "", "", "", ""]):
+def plot_states(t, s, filename, plot_titles=["", "", "", "", "", ""], y_labels=["", "", "", "", "", ""]):
       """
       Functionality
           Plot quadcopter states
@@ -152,45 +150,72 @@ def ilqr(f, s0, s_goal, N, Q, R, QN, eps=1e-3, max_iters=1000):
 
         # PART (c) ############################################################
         # INSTRUCTIONS: Update `Y`, `y`, `ds`, `du`, `s_bar`, and `u_bar`.
-        P_T = QN
-        P_k = P_T
-        p_T= q_T = QN.T@ (s_bar[-1]-s_goal)
-        p_k=p_T
-        q_k=q_T
-        r_T = R.T@ u_bar[-1]
-        r_k= r_T
-        #backward recursion
-        for j in range(N-1, -1, -1):
-            q_k = Q.T @ (s_bar[j]-s_goal)
-            r_k = R.T @ u_bar[j]
-            hxt = q_k + A[j].T @ p_k
-            hut = r_k + B[j].T @ p_k
-            Hxxt = Q + A[j].T @ P_k @ A[j]
-            Huut = R + B[j].T @ P_k @ B[j]
-            Hxut = A[j].T @ P_k @ B[j]
+        # Backward pass
+        P = QN
+        p = QN @ (s_bar[-1] - s_goal)
+        for k in range(N-1, -1, -1):
+            q = Q @ (s_bar[k] - s_goal)
+            r = R @ u_bar[k]
+            Hss = Q + A[k].T @ P @ A[k]
+            Huu = R + B[k].T @ P @ B[k]
+            Hsu = A[k].T @ P @ B[k]
+            hs = q + A[k].T @ p
+            hu = r + B[k].T @ p
+            Y[k] = -np.linalg.solve(Huu, Hsu.T)
+            y[k] = -np.linalg.solve(Huu, hu)
+            # P = Hss - Y[k].T @ Huu @ Y[k]
+            # p = hs - Y[k].T @ Huu @ y[k]
+            P = Hss + Hsu @ Y[k]
+            p = hs + Hsu @ y[k]
 
-            #K_k= -1.0*LA.pinv(Huut)@Hxut.transpose()
-            Y[j]= -1.0 * LA.pinv(Huut) @ Hxut.T
-            #k_k = -1.0 * LA.pinv(Huut)@hut
-            y[j] = -1.0 * LA.pinv(Huut) @ hut
-            #p_k = hxt + Hxxt@k_k
-            p_k = hxt + Hxut @ y[j]
-            #P_k = Hxxt +Hxut@K_k
-            P_k = Hxxt + Hxut @ Y[j]
-            """
-            if np.isnan(P_k).any():
-                import ipdb; ipdb.set_trace()
-            """
-
-        #forward pass
-        #roll out
+        # Forward pass
         for k in range(N):
             du[k] = y[k] + Y[k] @ ds[k]
             ds[k+1] = f(s_bar[k] + ds[k], u_bar[k] + du[k]) - s_bar[k+1]
-            #s_bar[k+1] = s_bar[k+1] + ds[k+1]
-            #u_bar[k] = u_bar[k] + du[k]
-        s_bar+=ds
-        u_bar+=du
+        s_bar += ds
+        u_bar += du
+
+
+        # Hyeong's code:
+        # P_T = QN
+        # P_k = P_T
+        # p_T= q_T = QN.T@ (s_bar[-1]-s_goal)
+        # p_k=p_T
+        # q_k=q_T
+        # r_T = R.T@ u_bar[-1]
+        # r_k= r_T
+        # #backward recursion
+        # for j in range(N-1, -1, -1):
+        #     q_k = Q.T @ (s_bar[j]-s_goal)
+        #     r_k = R.T @ u_bar[j]
+        #     hxt = q_k + A[j].T @ p_k
+        #     hut = r_k + B[j].T @ p_k
+        #     Hxxt = Q + A[j].T @ P_k @ A[j]
+        #     Huut = R + B[j].T @ P_k @ B[j]
+        #     Hxut = A[j].T @ P_k @ B[j]
+
+        #     #K_k= -1.0*LA.pinv(Huut)@Hxut.transpose()
+        #     Y[j]= -1.0 * LA.pinv(Huut) @ Hxut.T
+        #     #k_k = -1.0 * LA.pinv(Huut)@hut
+        #     y[j] = -1.0 * LA.pinv(Huut) @ hut
+        #     #p_k = hxt + Hxxt@k_k
+        #     p_k = hxt + Hxut @ y[j]
+        #     #P_k = Hxxt +Hxut@K_k
+        #     P_k = Hxxt + Hxut @ Y[j]
+        #     """
+        #     if np.isnan(P_k).any():
+        #         import ipdb; ipdb.set_trace()
+        #     """
+
+        # #forward pass
+        # #roll out
+        # for k in range(N):
+        #     du[k] = y[k] + Y[k] @ ds[k]
+        #     ds[k+1] = f(s_bar[k] + ds[k], u_bar[k] + du[k]) - s_bar[k+1]
+        #     #s_bar[k+1] = s_bar[k+1] + ds[k+1]
+        #     #u_bar[k] = u_bar[k] + du[k]
+        # s_bar+=ds
+        # u_bar+=du
         #######################################################################
         #print(np.max(np.abs(du)))
         if np.max(np.abs(du)) != 0.0 and np.max(np.abs(du)) < eps:
@@ -200,31 +225,9 @@ def ilqr(f, s0, s_goal, N, Q, R, QN, eps=1e-3, max_iters=1000):
     if not converged:
         print('iLQR did not converge!')
         #raise RuntimeError('iLQR did not converge!')
-        print(s_bar, u_bar)
-        print('j',j)
-        print('i',i)
     return s_bar, u_bar, Y, y
 
 
-def cartpole(s, u):
-    """Compute the cart-pole state derivative."""
-    mp = 1.     # pendulum mass
-    mc = 4.     # cart mass
-    L = 1.      # pendulum length
-    g = 9.81    # gravitational acceleration
-
-    x, θ, dx, dθ, _, _ = s
-    sinθ, cosθ = jnp.sin(θ), jnp.cos(θ)
-    h = mc + mp*(sinθ**2)
-    ds = jnp.array([
-        dx,
-        dθ,
-        0, #(mp*sinθ*(L*(dθ**2) + g*cosθ) + u[0]) / h,
-       (u[0]) / 1.0 - 9.8 ,# -((mc + mp)*g*sinθ + mp*L*(dθ**2)*sinθ*cosθ + u[0]*cosθ) / (h*L)
-       0,
-       0
-    ])
-    return ds
 def dynamics_jnp(s, u):
         """
         Functionality

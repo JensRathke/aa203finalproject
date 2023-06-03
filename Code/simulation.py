@@ -67,19 +67,19 @@ class SimulationPlanar:
         print("time to simulate: ", round(total_time, 2), "s")
 
         # Plot trajectory
-        self.qc.plot_trajectory(self.timeline, self.s_trajectory, self.output_filename + "_trajectory")
+        self.plot_trajectory(self.timeline, self.s_trajectory, self.output_filename + "_trajectory")
 
         # Plot states
-        self.qc.plot_states(self.timeline, self.s_trajectory, self.output_filename + "_states", ["x", "y", "dx", "dy", "phi", "omega"])
+        self.plot_states(self.timeline, self.s_trajectory, self.output_filename + "_states", ["x", "y", "dx", "dy", "phi", "omega"])
         
         # Plot controls
-        self.qc.plot_controls(self.timeline, self.u_trajectory, self.output_filename + "_controls", [r"$T_1$", r"$T_2$"])
+        self.plot_controls(self.timeline, self.u_trajectory, self.output_filename + "_controls", [r"$T_1$", r"$T_2$"])
 
         # Plot state costs
         self.plot_statecosts()
 
         # Create animation
-        self.qc.animate(self.timeline, self.s_trajectory, self.pad_trajectory, self.output_filename)
+        self.animate(self.timeline, self.s_trajectory, self.pad_trajectory, self.output_filename)
 
     def plot_statecosts(self):
         costs = np.zeros((self.timeline.size, self.controller.n + 1))
@@ -92,6 +92,54 @@ class SimulationPlanar:
 
         plot_1x1(self.output_filename + "_statecosts", self.timeline, costs.T, "State Costs", show_legend=True, legend_labels=["x", "y", "dx", "dy", "phi", "omega", "total cost"])
 
+    def animate(self, t, s, sg, filename):
+        """
+        Functionality
+            Animate a quadcopter trajectory
+
+        Parameters
+            t: time
+            s: state trajectory (x, y, dx, dy, psi, omega)
+            sg: goal state trajectory (x, y, dx, dy, psi, omega)
+            filename: name of the output file without file-extension
+        """
+        animate_planar_quad(filename, t, s[:, 0], s[:, 1], s[:, 4], sg[:, 0], sg[:, 1], sg[:, 4], self.qc.l, self.qc.r, self.qc.h)
+
+    def plot_states(self, t, s, filename, plot_titles=["", "", "", "", "", ""], y_labels=["", "", "", "", "", ""]):
+        """
+        Functionality
+            Plot quadcopter states
+
+        Parameters
+            t: time
+            s: state trajectory (x, y, dx, dy, psi, omega)
+            filename: name of the output file without file-extension
+        """
+        plot_3x2(filename, t, s[:, 0], s[:, 1], s[:, 2], s[:, 3], s[:, 4], s[:, 5], "trajectory", plot_titles=plot_titles, ylabels=y_labels)
+
+    def plot_controls(self, t, u, filename, plot_titles=["", ""], y_labels=["", ""]):
+        """
+        Functionality
+            Plot a quadcopter trajectory
+
+        Parameters
+            t: time
+            u: controls (t1, t2)
+            filename: name of the output file without file-extension
+        """
+        plot_1x2(filename, t, u[:, 0], u[:, 1], "controls", plot_titles=plot_titles, ylabels=y_labels)
+
+    def plot_trajectory(self, t, s, filename):
+        """
+        Functionality
+            Plot a quadcopter trajectory
+
+        Parameters
+            t: time
+            s: state trajectory (x, y, dx, dy, psi, omega)
+            filename: name of the output file without file-extension
+        """
+        plot_trajectory(filename, s[:, 0], s[:, 1], "trajectory")
 
 class SimulationCubic:
     """ Simulation for a cubic Quadcopter """

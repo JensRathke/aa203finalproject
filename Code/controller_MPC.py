@@ -80,7 +80,7 @@ class PQcopter_controller_MPC():
 
             if k <= N and k > 0:
                 # dynamics constraint
-                constraints.append(A @ x_cvx[k-1] + B @ u_cvx[k-1] == x_cvx[k])
+                constraints.append(A[k-1] @ x_cvx[k-1] + B[k-1] @ u_cvx[k-1] == x_cvx[k])
 
             if k < N:
                 # stage cost
@@ -110,15 +110,16 @@ class PQcopter_controller_MPC():
         t_line = jnp.arange(0., self.T, 1)
 
         x = jnp.copy(self.s_init)
-        x_mpc = jnp.zeros((self.T, self.N + 1, self.n))
-        x_mpc = x_mpc.at[0, 0].set(self.s_init)
-        u_mpc = jnp.zeros((self.T, self.N, self.m))
+        x_mpc = np.zeros((self.T, self.N + 1, self.n))
+        x_mpc[0, 0] = self.s_init
+        u_mpc = np.zeros((self.T, self.N, self.m))
 
         P = jnp.eye(self.n)
 
         # Initialize continuous-time and discretized dynamics
         f = jax.jit(self.qc.dynamics_jnp)
-        fd = jax.jit(ct.discretize(self.qc.dynamics_jnp, self.dt))
+        # fd = jax.jit(ct.discretize(self.qc.dynamics_jnp, self.dt))
+        fd = self.qc.discrete_dynamics_jnp
 
         for t in range(1, self.T):
             # A, B, _ = self.linearize_penalize(self.qc.dynamics_jnp, x_mpc[t-1, 0], u_mpc[t-1, 0])
@@ -126,20 +127,17 @@ class PQcopter_controller_MPC():
 
             # A, B = ct.linearize(self.qc.discrete_dynamics_jnp, x_mpc[t-1, 0], u_mpc[t-1, 0])
 
-            print(">>>", x_mpc[t-1, :-1], u_mpc[t-1])
-            A, B, c = self.affinize(fd, x_mpc[t-1, :-1], u_mpc[t-1])
-            A, B = np.array(A[0]), np.array(B[0])
+            A, B, c = ct.affinize(fd, x_mpc[t-1, :-1], u_mpc[t-1])
+            A, B = np.array(A), np.array(B)
 
             print("x1:", x)
-            x_mpc[t], u_mpc[t], status = self.mpc_rollout(x, A, B, P, self.Q, self.R, self.N, self.rs, self.ru, self.rT)
+            x_mpc[t], u_mpc[t], status = self.mpc_rollout(x[0], A, B, P, self.Q, self.R, self.N, self.rs, self.ru, self.rT)
             print(x_mpc[t], u_mpc[t], status)
             if status == 'infeasible':
                 x_mpc = x_mpc[:t]
                 u_mpc = u_mpc[:t]
                 break
-            print("A, x, B, u:", A, x, B, u_mpc[t, 0])
             x = A @ x + B @ u_mpc[t, 0]
-            print("x3:", x)
 
         x_values = jnp.zeros((x_mpc.shape[0], self.N + 1))
         y_values = jnp.zeros((x_mpc.shape[0], self.N + 1))

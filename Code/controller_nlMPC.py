@@ -61,8 +61,8 @@ class QC_controller_nlMPC():
 
         s = np.copy(self.s_init)
 
-        total_control_cost = 0.0
         tol = 0.1
+        total_control_cost = 0.0
         touchdownvels = np.zeros(3)
         touchdowntime = 0
 
