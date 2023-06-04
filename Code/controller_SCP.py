@@ -1,267 +1,289 @@
 #!/usr/bin/env python3
 
 import numpy as np
+import cvxpy as cp
 import jax
 import jax.numpy as jnp
-import time
-import cvxpy as cvx
+import matplotlib.pyplot as plt
+import controller_tools as ct
 
-from scipy.integrate import odeint
-from scipy.optimize import minimize
+from scipy.linalg import solve_discrete_are
 from functools import partial
-from tqdm import tqdm
-
+from time import time
+from tqdm.auto import tqdm
 from quadcopter import *
+from plotting import *
 
-class PQcopter_controller_SCP():
-    """ Controller for a planar quadcopter using SCP"""
-    def __init__(self, qcopter: QuadcopterPlanar, s_init):
+
+class QC_controller_SCP():
+    """ Controller for a quadcopter using non-linear MPC """
+    def __init__(self):
         """
         Functionality
-            Initialisation of a controller for a planar quadcopter using iLQR
-
-        Parameters
-            qcopter: quadcopter to be controlled
-            s_init: initial state of the quadcopter
+            Initialisation of a controller for a quadcopter using non-linear MPC
         """
-        self.qcopter = qcopter
+        raise NotImplementedError("Method must be overriden by a subclass of QC_controller_nlMPC")
 
-        self.n = 6                                  # state dimension
-        self.m = 2                                  # control dimension
-        self.Q =jnp.diag(jnp.array([10., 10., 10., 100., 100., 10.]))   # state cost matrix
-        self.R = 1e-1*np.eye(self.m)                     # control cost matrix
-        self.P = 1e2*np.eye(self.n)                     # terminal state cost matrix
-        self.s_init = s_init#np.array([4., 50., 0., 0., 0, 0.])                      # initial state
-        #self.s_goal = np.array([0., self.qcopter.h, 0., 0., 0. , 0.])      # goal state
-        self.s_goal = np.array([0., 0., 0., 0., 0. , 0.])      # goal state
-        self.T = 20.                                # simulation time
-        self.dt = 0.1 # s
-        self.u_max = 50.                           # control effort bound
-        self.eps = 5e-1
-        self.ρ = 10000.
-        self.u_ρ = 30
-        self.max_iters = 100
+    def landing_scp(self, s0, k0, s_init = None, u_init = None, convergence_error = False):
+        # Initialize trajectory
+        if s_init is None or u_init is None:
+            s = np.zeros((self.N + 1, self.n))
+            u = np.zeros((self.N, self.m))
+            s[0] = s0
+            for k in range(self.N):
+                s[k+1] = self.dynamics(s[k], u[k])
+        else:
+            s[0] = np.copy(s_init)
+            u[0] = np.copy(u_init)
 
-        self.fd = jax.jit(self.discretize(self.qcopter.dynamics_jnp, self.dt))
-
-    @partial(jax.jit, static_argnums=(0,))
-    @partial(jax.vmap, in_axes=(None, 0, 0))
-    def affinize(self, f, s, u):
-
-        A, B  = jax.jacobian(f,(0,1))(s,u)
-        c = f(s,u) - A @ s - B @ u
-        return A, B, c
-
-
-    def discretize(self,f, dt):
-        #Discretize continuous-time dynamics `f` via Runge-Kutta integration.
-
-        def integrator(s, u, dt=dt):
-            k1 = dt * f(s, u)
-            k2 = dt * f(s + k1 / 2, u)
-            k3 = dt * f(s + k2 / 2, u)
-            k4 = dt * f(s + k3, u)
-            return s + (k1 + 2 * k2 + 2 * k3 + k4) / 6
-
-        return integrator
-
-    def scp_iteration(self, f, s0, s_goal, s_prev, u_prev, N, P, Q, R, u_max, ρ):
-        """Solve a single SCP sub-problem for the cart-pole swing-up problem.
-
-        Arguments
-        ---------
-        f : callable
-            A function describing the discrete-time dynamics, such that
-            `s[k+1] = f(s[k], u[k])`.
-        s0 : numpy.ndarray
-            The initial state (1-D).
-        s_goal : numpy.ndarray
-            The goal state (1-D).
-        s_prev : numpy.ndarray
-            The state trajectory around which the problem is convexified (2-D).
-        u_prev : numpy.ndarray
-            The control trajectory around which the problem is convexified (2-D).
-        N : int
-            The time horizon of the LQR cost function.
-        P : numpy.ndarray
-            The terminal state cost matrix (2-D).
-        Q : numpy.ndarray
-            The state stage cost matrix (2-D).
-        R : numpy.ndarray
-            The control stage cost matrix (2-D).
-        u_max : float
-            The bound defining the control set `[-u_max, u_max]`.
-        ρ : float
-            Trust region radius.
-
-        Returns
-        -------
-        s : numpy.ndarray
-            A 2-D array where `s[k]` is the open-loop state at time step `k`,
-            for `k = 0, 1, ..., N-1`
-        u : numpy.ndarray
-            A 2-D array where `u[k]` is the open-loop state at time step `k`,
-            for `k = 0, 1, ..., N-1`
-        J : float
-            The SCP sub-problem cost.
-        """
-        A, B, c = affinize(f, s_prev[:-1], u_prev)
-        A, B, c = np.array(A), np.array(B), np.array(c)
-        n = Q.shape[0]
-        m = R.shape[0]
-        s_cvx = cvx.Variable((N + 1, n))
-        u_cvx = cvx.Variable((N, m))
-
-        # PART (c) ################################################################
-        # INSTRUCTIONS: Construct the convex SCP sub-problem.
-        objective = 0.
-        constraints = []
-
-        cost_terms = []
-
-        #cost for terminal state
-        cost_terms.append(cvx.quad_form((s_cvx[N]-s_goal), P))
-        #initial constraint
-        constraints.append(s_cvx[0]==s0)
-        #terminal constraint
-        constraints.append(cvx.norm_inf(s_cvx[N] - s_prev[N])<= ρ)
-
-        for i in range(N):
-            # append stage costs
-            cost_terms.append(cvx.quad_form((s_cvx[i]-s_goal), Q))#np.transpose(s_cvx[i]-s_goal) @ Q @ (s_cvx[i]-s_goal)
-            cost_terms.append(cvx.quad_form(u_cvx[i], R))
-
-            # stage affine constraints and trust region/control constraints
-            constraints.append(s_cvx[i+1] == A[i] @ s_cvx[i] + B[i] @ u_cvx[i] + c[i])
-            constraints.append(cvx.norm_inf(s_cvx[i] - s_prev[i])<= ρ)
-            constraints.append(cvx.norm_inf(u_cvx[i] - u_prev[i])<= self.u_ρ)
-            constraints.append(cvx.norm_inf(s_cvx[i,0] - s_prev[i,0])<= 1000.)
-            constraints.append(cvx.norm_inf(s_cvx[i,1] - s_prev[i,1])<= 4000.)
-            constraints.append(cvx.norm_inf(s_cvx[i,2] - s_prev[i,2])<= 1000.)
-            constraints.append(cvx.norm_inf(s_cvx[i,3] - s_prev[i,3])<= 1000.)
-            constraints.append(cvx.norm_inf(s_cvx[i,4] - s_prev[i,4])<= 1000.)
-            constraints.append(cvx.norm_inf(s_cvx[i,5] - s_prev[i,5])<= 1000.)
-            constraints.append(cvx.abs(u_cvx[i])<= u_max)
-
-        # END PART (c) ############################################################
-        objective = cvx.sum(cost_terms)
-        prob = cvx.Problem(cvx.Minimize(objective), constraints)
-        prob.solve()
-
-        if prob.status != 'optimal':
-            raise RuntimeError('SCP solve failed. Problem status: ' + prob.status)
-        s = s_cvx.value
-        u = u_cvx.value
-        J = prob.objective.value
-        return s, u, J
-
-    def solve_landing_scp(self, f, s0, s_goal, N, P, Q, R, u_max, ρ, eps, max_iters):
-        """Solve the quadcopter landing problem via SCP.
-
-        Arguments
-        ---------
-        f : callable
-            A function describing the discrete-time dynamics, such that
-            `s[k+1] = f(s[k], u[k])`.
-        s0 : numpy.ndarray
-            The initial state (1-D).
-        s_goal : numpy.ndarray
-            The goal state (1-D).
-        N : int
-            The time horizon of the LQR cost function.
-        P : numpy.ndarray
-            The terminal state cost matrix (2-D).
-        Q : numpy.ndarray
-            The state stage cost matrix (2-D).
-        R : numpy.ndarray
-            The control stage cost matrix (2-D).
-        u_max : float
-            The bound defining the control set `[-u_max, u_max]`.
-        ρ : float
-            Trust region radius.
-        eps : float
-            Termination threshold for SCP.
-        max_iters : int
-            Maximum number of SCP iterations.
-
-        Returns
-        -------
-        s : numpy.ndarray
-            A 2-D array where `s[k]` is the open-loop state at time step `k`,
-            for `k = 0, 1, ..., N-1`
-        u : numpy.ndarray
-            A 2-D array where `u[k]` is the open-loop state at time step `k`,
-            for `k = 0, 1, ..., N-1`
-        J : numpy.ndarray
-            A 1-D array where `J[i]` is the SCP sub-problem cost after the i-th
-            iteration, for `i = 0, 1, ..., (iteration when convergence occured)`
-        """
-        n = Q.shape[0]  # state dimension
-        m = R.shape[0]  # control dimension
-
-        # Initialize dynamically feasible nominal trajectories
-        u = np.zeros((N, m))
-        s = np.zeros((N + 1, n))
-        s[0] = s0
-        for k in range(N):
-            s[k+1] = f(s[k], u[k])
-
-        # Do SCP until convergence or maximum number of iterations is reached
         converged = False
-        J = np.zeros(max_iters + 1)
-        J[0] = np.inf
-        for i in (prog_bar := tqdm(range(max_iters))):
-            s, u, J[i + 1] = self.scp_iteration(f, s0, s_goal, s, u, N,
-                                        P, Q, R, u_max, ρ)
-            dJ = np.abs(J[i + 1] - J[i])
-            prog_bar.set_postfix({'objective change': '{:.5f}'.format(dJ)})
-            if dJ < eps:
+        J = np.zeros(self.N_scp + 1)
+
+        for iteration in range(self.N_scp):
+            s, u, J[iteration + 1] = self.scp_iteration(s0, k0, s, u)
+
+            dJ = np.abs(J[iteration + 1] - J[iteration])
+            if dJ < self.eps:
                 converged = True
-                print('SCP converged after {} iterations.'.format(i))
                 break
-        if not converged:
+
+        if not converged and convergence_error:
             raise RuntimeError('SCP did not converge!')
-        J = J[1:i+1]
-        return s, u, J
+
+        return s, u
+
+    def scp_iteration(self, s0, k0, s_prev, u_prev):
+        raise NotImplementedError("Method must be overriden by a subclass of QC_controller_SCP")
 
     def land(self):
-        # Initialize continuous-time and discretized dynamics
+        s = np.zeros((self.N + 1, self.n))
+        u_tmp = np.zeros((self.N + 1 ,self.m))
 
-        fd = jax.jit(self.discretize(self.qcopter.dynamics_jnp, self.dt))
+        #s = np.copy(self.s_init)
 
-        # Compute the SCP solution with the discretized dynamics
-        print('Computing SCP solution ... ', end='', flush=True)
-        start = time.time()
-        t = np.arange(0., self.T, self.dt)
-        N = t.size - 1
-        s, u, J  = self.solve_landing_scp(fd, self.s_init, self.s_goal, N, self.P,self.Q, self.R,
-                                                    self.u_max, self.ρ, self.eps, self.max_iters)
-        print('done! ({:.2f} s)'.format(time.time() - start), flush=True)
+        total_control_cost = 0.0
+        tol = 0.1
+        touchdownvels = np.zeros(3)
+        touchdowntime = 0
 
-        # Simulate on the true continuous-time system
-        print('Simulating ... ', end='', flush=True)
-        start = time.time()
+        #s_init = None
+        s_init = np.array([4., 45., 0., 0., -0.1 * np.pi, -1.])
+        u_init = None
+
+        #for k in tqdm(range(self.K)):
+        s[0] = s_init
+        s, u = self.landing_scp(s[0], 3, s_init, u_init)
+
+        for k in range(self.N):
+            s[k+1] =  self.dynamics(s[k], u[k])
+        """
+        if np.abs(s[0] - self.pad_trajectory[k, 0]) < tol and np.abs(s[1] - self.pad_trajectory[k, 1]) < tol and np.abs(s[4] - self.pad_trajectory[k, 4]) < tol:
+            self.landed = True
+            touchdowntime = time()
+            touchdownvels[0] = s_mpc[k, 0, 2]
+            touchdownvels[1] = s_mpc[k, 0, 3]
+            touchdownvels[2] = s_mpc[k, 0, 5]
+        """
+        for k in range(self.N):
+            total_control_cost += u[k].T @ self.R @ u[k]
+
+        #u_init = np.concatenate([u_mpc[k, 1:], u_mpc[k, -1:]])
+        #s_init = np.concatenate([s_mpc[k, 1:], self.dynamics(s_mpc[k, -1], u_mpc[k, -1]).reshape([1, -1])])
+
+        # Plot trajectory and controls
+        fig, ax = plt.subplots(1, 2, dpi=150, figsize=(15, 5))
+        fig.suptitle('$N = {}$, '.format(self.N) + r'$N_\mathrm{SCP} = ' + '{}$'.format(self.N))
+
+        #for t in range(self.T):
+        #   ax[0].plot(s_mpc[t, :, 0], s_mpc[t, :, 1], '--*', color='k')
+        ax[0].plot(s[:, 0], s[:, 1], '-')
+        ax[0].set_xlabel(r'$x(t)$')
+        ax[0].set_ylabel(r'$y(t)$')
+        ax[0].axis('equal')
+
+        ax[1].plot(u[:,  0], '-', label=r'$u_1(t)$')
+        ax[1].plot(u[:,  1], '-', label=r'$u_2(t)$')
+        ax[1].set_xlabel(r'$t$')
+        ax[1].set_ylabel(r'$u(t)$')
+        ax[1].legend()
+
+        suffix = '_Nmpc={}_Nscp={}'.format(self.N, self.N_scp)
+        plt.savefig('Figures/test_scp' + suffix + '.png', bbox_inches='tight')
+        plt.show()
+        plt.close(fig)
+        print('s shape', s.shape)
+        print('u shape', u.shape)
+        u_tmp[:-1] = u
+
+        return s, u_tmp, total_control_cost, self.landed, touchdowntime, touchdownvels
 
 
-        for k in range(N):
-            s[k+1] = fd(s[k], u[k])
+class QC_controller_SCP_unconst(QC_controller_SCP):
+    """
+    Controller for a quadcopter without constraints
+    """
+    def __init__(self, quadcopter, state_dim, control_dim, P, Q, R, s_init, s_goal, T, dt):
+        """
+        Functionality
+            Initialisation of a controller for a quadcopter using non-linear MPC
 
-        print('done! ({:.2f} s)'.format(time.time() - start), flush=True)
+        Parameters
+            quadcopter: quadcopter to be controlled
+            s_init: initial state of the quadcopter
+        """
+        self.qc = quadcopter
 
-        sg = np.zeros((t.size, 6))
-        sg[:, 1] = self.qcopter.h
+        self.n = state_dim                  # state dimension
+        self.m = control_dim                # control dimension
+        self.P = P                          # terminal state cost matrix
+        self.Q = Q                          # state cost matrix
+        self.R = R                          # control cost matrix
+        self.eps = 1e-3                     # SCP convergence tolerance
+        self.s_init = s_init                # initial state
+        self.s_goal = s_goal                # goal state
+        self.T = T #s                       # simulation time
+        self.dt = dt #s                     # sampling time
+        self.K = int(self.T / self.dt) + 1  # number of steps
+        self.N = int(self.T / self.dt)#self.K                    # MPC rollout steps
+        self.N_scp = 300                      # Max. number of SCP interations
 
-        self.qcopter.plot_states(t, s, "test_SCP_s", ["x", "y", "dx", "dy", "theta", "omega"])
-        self.qcopter.plot_controls(t[0:N], u, "test_SCP_u", ["T1", "T2"])
-        self.qcopter.animate(t, s, sg, "test_SCP")
+        self.dynamics = self.qc.discrete_dynamics
 
-@partial(jax.jit, static_argnums=(0,))
-@partial(jax.vmap, in_axes=(None, 0, 0))
-def affinize( f, s, u):
+        self.landed = False
 
-        A, B  = jax.jacobian(f,(0,1))(s,u)
-        c = f(s,u) - A @ s - B @ u
-        return A, B, c
+        self.timeline = None
+        self.pad_trajectory = None
 
-if __name__ == "__main__":
-    pass
+    def scp_iteration(self, s0, k0, s_prev, u_prev):
+        A, B, c = ct.affinize(self.dynamics, s_prev[:-1], u_prev)
+        A, B, c = np.array(A), np.array(B), np.array(c)
+
+        s_cvx = cp.Variable((self.N + 1, self.n))
+        u_cvx = cp.Variable((self.N , self.m))
+
+        # Construction of the convex SCP sub-problem.
+        costs = []
+        constraints = []
+
+        for k in range(self.N + 1):
+            if k == 0:
+                # initial condition
+                constraints.append(s_cvx[k] == s0)
+
+            if k == self.N:
+                # terminal cost
+                costs.append(cp.quad_form(s_cvx[k] - self.pad_trajectory[k], self.P))
+
+            if k < self.N:
+                # dynamics constraint
+                constraints.append(A[k] @ s_cvx[k] + B[k] @ u_cvx[k] + c[k] == s_cvx[k+1])
+
+                # stage cost
+                costs.append(cp.quad_form(s_cvx[k] - self.pad_trajectory[k], self.Q))
+                costs.append(cp.quad_form(u_cvx[k], self.R))
+
+        objective = cp.sum(costs)
+
+        problem = cp.Problem(cp.Minimize(objective), constraints)
+        problem.solve()
+
+        if problem.status != 'optimal':
+            raise RuntimeError('SCP solve failed. Problem status: ' + problem.status)
+        s = s_cvx.value
+        u = u_cvx.value
+        J = problem.objective.value
+
+        return s, u, J
+
+
+class QC_controller_SCP_constr(QC_controller_SCP):
+    """
+    Controller for a quadcopter with constraints
+        u_max: maximum torque of the rotors
+        u_diff: maximum change of torque of the rotors
+    """
+    def __init__(self, quadcopter, state_dim, control_dim, P, Q, R, rs, ru, rT, s_init, s_goal, T, dt, u_max = np.inf, u_diff = np.inf):
+        """
+        Functionality
+            Initialisation of a controller for a quadcopter using non-linear MPC
+
+        Parameters
+            quadcopter: quadcopter to be controlled
+            s_init: initial state of the quadcopter
+        """
+        self.qc = quadcopter
+
+        self.n = state_dim                  # state dimension
+        self.m = control_dim                # control dimension
+        self.P = P                          # terminal state cost matrix
+        self.Q = Q                          # state cost matrix
+        self.R = R                          # control cost matrix
+        self.eps = 1e-3                     # SCP convergence tolerance
+        self.s_init = s_init                # initial state
+        self.s_goal = s_goal                # goal state
+        self.T = T #s                       # simulation time
+        self.dt = dt #s                     # sampling time
+        self.K = int(self.T / self.dt) + 1  # number of steps
+        self.N_mpc = 10                     # MPC rollout steps
+        self.N_scp = 3                      # Max. number of SCP interations
+
+        # Controller constraints
+        self.rs = rs
+        self.ru = ru
+        self.rT = rT
+        self.u_max = u_max
+        self.u_diff = u_diff
+
+        self.dynamics = self.qc.discrete_dynamics_jnp
+
+        self.landed = False
+
+        self.timeline = None
+        self.pad_trajectory = None
+
+    def scp_iteration(self, s0, k0, s_prev, u_prev):
+        A, B, c = ct.affinize(self.dynamics, s_prev[:-1], u_prev)
+        A, B, c = np.array(A), np.array(B), np.array(c)
+
+        s_cvx = cp.Variable((self.N + 1, self.n))
+        u_cvx = cp.Variable((self.N, self.m))
+
+        # Construction of the convex SCP sub-problem.
+        costs = []
+        constraints = []
+
+        for k in range(self.N + 1):
+            # Global constraints
+
+            if k == 0:
+                # initial condition
+                constraints.append(s_cvx[k] == s0)
+
+            if k == self.N_mpc:
+                # terminal cost
+                costs.append(cp.quad_form(s_cvx[k] - self.pad_trajectory[ k], self.P))
+
+            if k < self.N_mpc:
+                # dynamics constraint
+                constraints.append(A[k] @ s_cvx[k] + B[k] @ u_cvx[k] + c[k] == s_cvx[k+1])
+
+                # stage cost
+                costs.append(cp.quad_form(s_cvx[k] - self.pad_trajectory[k], self.Q))
+                costs.append(cp.quad_form(u_cvx[k], self.R))
+
+                # control contraints
+                constraints.append(cp.abs(u_cvx[k]) <= self.u_max)
+                constraints.append(cp.norm(u_cvx[k] - u_prev[k], 'inf') <= self.u_diff)
+
+        objective = cp.sum(costs)
+
+        problem = cp.Problem(cp.Minimize(objective), constraints)
+        problem.solve()
+
+        if problem.status != 'optimal':
+            raise RuntimeError('SCP solve failed. Problem status: ' + problem.status)
+        s = s_cvx.value
+        u = u_cvx.value
+        J = problem.objective.value
+
+        return s, u, J

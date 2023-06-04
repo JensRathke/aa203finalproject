@@ -7,13 +7,13 @@ from time import time
 from simulation import *
 from quadcopter import *
 from spacecraft import *
-from controller_test import *
 from controller_iLQR import *
 from controller_SCP import *
 from controller_MPC import *
 from controller_nlMPC import *
 from plotting import *
 from animation import *
+from markdown import write_textfile
 
 class SimulationPlanar:
     """ Simulation for a planar Quadcopter """
@@ -61,10 +61,13 @@ class SimulationPlanar:
         total_time = time() - total_time
 
         # Print results
-        print('total control cost:', round(total_control_cost, 2))
+        print("total control cost:", round(total_control_cost, 2))
         print("time to touchdown: ", touchdowntime, "s")
         print("touchdown velocities: ", touchdownvels)
         print("time to simulate: ", round(total_time, 2), "s")
+
+        # Write results
+        self.write_results(total_control_cost, touchdowntime, touchdownvels, total_time)
 
         # Plot trajectory
         self.plot_trajectory(self.timeline, self.s_trajectory, self.output_filename + "_trajectory")
@@ -81,6 +84,9 @@ class SimulationPlanar:
         # Create animation
         self.animate(self.timeline, self.s_trajectory, self.pad_trajectory, self.output_filename)
 
+    def write_results(self, total_control_cost, touchdowntime, touchdownvels, total_time):
+        write_textfile(self.output_filename + "_results", self.controller.description, self.controller.P, self.controller.Q, self.controller.R, total_control_cost, touchdowntime, touchdownvels, total_time)
+    
     def plot_statecosts(self):
         costs = np.zeros((self.timeline.size, self.controller.n + 1))
 
@@ -91,19 +97,6 @@ class SimulationPlanar:
             costs[t, -1] = (self.s_trajectory[t] - self.pad_trajectory[t]).T @ self.controller.Q @ (self.s_trajectory[t] - self.pad_trajectory[t])
 
         plot_1x1(self.output_filename + "_statecosts", self.timeline, costs.T, "State Costs", show_legend=True, legend_labels=["x", "y", "dx", "dy", "phi", "omega", "total cost"])
-
-    def animate(self, t, s, sg, filename):
-        """
-        Functionality
-            Animate a quadcopter trajectory
-
-        Parameters
-            t: time
-            s: state trajectory (x, y, dx, dy, psi, omega)
-            sg: goal state trajectory (x, y, dx, dy, psi, omega)
-            filename: name of the output file without file-extension
-        """
-        animate_planar_quad(filename, t, s[:, 0], s[:, 1], s[:, 4], sg[:, 0], sg[:, 1], sg[:, 4], self.qc.l, self.qc.r, self.qc.h)
 
     def plot_states(self, t, s, filename, plot_titles=["", "", "", "", "", ""], y_labels=["", "", "", "", "", ""]):
         """
@@ -140,6 +133,20 @@ class SimulationPlanar:
             filename: name of the output file without file-extension
         """
         plot_trajectory(filename, s[:, 0], s[:, 1], "trajectory")
+
+    def animate(self, t, s, sg, filename):
+        """
+        Functionality
+            Animate a quadcopter trajectory
+
+        Parameters
+            t: time
+            s: state trajectory (x, y, dx, dy, psi, omega)
+            sg: goal state trajectory (x, y, dx, dy, psi, omega)
+            filename: name of the output file without file-extension
+        """
+        animate_planar_quad(filename, t, s[:, 0], s[:, 1], s[:, 4], sg[:, 0], sg[:, 1], sg[:, 4], self.qc.l, self.qc.r, self.qc.h)
+
 
 class SimulationCubic:
     """ Simulation for a cubic Quadcopter """

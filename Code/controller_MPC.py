@@ -91,7 +91,7 @@ class PQcopter_controller_MPC():
                 # constraints.append(cvx.norm(x_cvx[k] - x_cvx[k-1], 'inf') <= rx)
 
                 # control contraints
-                constraints.append(cp.norm(u_cvx[k], 'inf') <= ru)
+                # constraints.append(cp.norm(u_cvx[k], 'inf') <= ru)
 
         cost = cp.sum(costs)
 
@@ -117,9 +117,9 @@ class PQcopter_controller_MPC():
         P = jnp.eye(self.n)
 
         # Initialize continuous-time and discretized dynamics
-        f = jax.jit(self.qc.dynamics_jnp)
+        f = jax.jit(self.qc.dynamics)
         # fd = jax.jit(ct.discretize(self.qc.dynamics_jnp, self.dt))
-        fd = self.qc.discrete_dynamics_jnp
+        fd = self.qc.discrete_dynamics
 
         for t in range(1, self.T):
             # A, B, _ = self.linearize_penalize(self.qc.dynamics_jnp, x_mpc[t-1, 0], u_mpc[t-1, 0])

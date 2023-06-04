@@ -10,7 +10,7 @@ from animation import *
 
 class QuadcopterPlanar:
     """ Planar Quadcopter """
-    def __init__(self, mass = 450, len_rotor_arm = 3.6, cabin_radius = 1.2, h_centre_of_mass = 1.5):
+    def __init__(self, mass = 450, len_rotor_arm = 3.6, cabin_radius = 1.2, h_centre_of_mass = 1.5, dt = 0.05, noise_var = 0):
         """
         Functionality
             Initialisation of a planar quadcopter
@@ -26,6 +26,10 @@ class QuadcopterPlanar:
         self.l = len_rotor_arm # m
         self.r = cabin_radius # m
         self.h = h_centre_of_mass # m
+
+        self.dt = dt
+
+        self.noise_var = noise_var
 
         self.Ixx = (2. * self.m * (self.r ** 2.) / 5.) + 2. * self.m * (self.l ** 2.)
         self.Iyy = (2. * self.m * (self.r ** 2.) / 5.) + 2. * self.m * (self.l ** 2.)
@@ -55,62 +59,9 @@ class QuadcopterPlanar:
             (t2 - t1) * self.l / self.Izz
         ])
 
-        return ds
+        return ds * np.random.normal(1, self.noise_var)
     
-    def dynamics_jnp(self, s, u):
-        """
-        Functionality
-            Continuous-time quadcopter dynamics
-
-        Parameters
-            s: state (x, y, dx, dy, phi, omega)
-            u: control input (u1, u2)
-
-        Returns
-            derivative of the state with respect to time
-        """
-        x, y, dx, dy, phi, omega = s
-        t1, t2 = u
-
-        ds = jnp.array([
-            dx,
-            dy,
-            -(t1 + t2) * jnp.sin(phi) / self.m,
-            (t1 + t2) * jnp.cos(phi) / self.m - self.g,
-            omega,
-            (t2 - t1) * self.l / self.Izz
-        ])
-
-        return ds
-    
-    def dynamics_ode(self, s, t, u):
-        """
-        Functionality
-            Continuous-time quadcopter dynamics
-
-        Parameters
-            s: state (x, y, dx, dy, phi, omega)
-            t
-            u: control input (u1, u2)
-
-        Returns
-            derivative of the state with respect to time
-        """
-        x, y, dx, dy, phi, omega = s
-        t1, t2 = u
-
-        ds = jnp.array([
-            dx,
-            dy,
-            -(t1 + t2) * jnp.sin(phi) / self.m,
-            (t1 + t2) * jnp.cos(phi) / self.m - self.g,
-            omega,
-            (t2 - t1) * self.l / self.Izz
-        ])
-
-        return ds
-    
-    def discrete_dynamics(self, s, u, dt = 0.1):
+    def discrete_dynamics(self, s, u):
         """
         Functionality
             Discrete-time quadcopter dynamics
@@ -134,33 +85,8 @@ class QuadcopterPlanar:
             (t2 - t1) * self.l / self.Izz
         ])
 
-        return s + ds * dt
-    
-    def discrete_dynamics_jnp(self, s, u, dt = 0.1):
-        """
-        Functionality
-            Discrete-time quadcopter dynamics
+        return s + ds * self.dt * np.random.normal(1, self.noise_var)
 
-        Parameters
-            s: state (x, y, dx, dy, phi, omega)
-            u: control input (t1, t2)
-
-        Returns
-            derivative of the state with respect to time
-        """
-        x, y, dx, dy, phi, omega = s
-        t1, t2 = u
-
-        ds = jnp.array([
-            dx,
-            dy,
-            -(t1 + t2) * jnp.sin(phi) / self.m,
-            (t1 + t2) * jnp.cos(phi) / self.m - self.g,
-            omega,
-            (t2 - t1) * self.l / self.Izz
-        ])
-
-        return s + ds * dt
 
 class QuadcopterCubic:
     """ Cubic Quadcopter """
@@ -190,7 +116,7 @@ class QuadcopterCubic:
         self.Iyy = (2. * self.m * (self.r ** 2.) / 5.) + 2. * self.m * (self.l ** 2.)   # moment of inertia [kg m²]
         self.Izz = (2. * self.m * (self.r ** 2.) / 5.) + 4. * self.m * (self.l ** 2.)   # moment of inertia [kg m²]
 
-    def dynamics_jnp(self, s, u):
+    def dynamics(self, s, u):
         """
         Functionality
             Quadcopter dynamics
@@ -234,7 +160,7 @@ class QuadcopterCubic:
 
         return ds
     
-    def discrete_dynamics_jnp(self, s, u, dt = 0.1):
+    def discrete_dynamics(self, s, u, dt = 0.1):
         """
         Functionality
             Quadcopter dynamics

@@ -16,7 +16,7 @@ from quadcopter import *
 
 class QC_controller_iLQR():
     """ Controller for a planar quadcopter using iLQR """
-    def __init__(self, quadcopter: QuadcopterPlanar, s_init):
+    def __init__(self, quadcopter: QuadcopterPlanar, n, m, QN, Q, R, s_init, s_goal, T, dt):
         """
         Functionality
             Initialisation of a controller for a planar quadcopter using iLQR
@@ -25,23 +25,23 @@ class QC_controller_iLQR():
             qcopter: quadcopter to be controlled
             s_init: initial state of the quadcopter
         """
+        self.description = "iLQR"
+
         self.qc = quadcopter
-        self.n = 6                                  # state dimension
-        self.m = 2                                  # control dimension
-        self.Q = np.diag(np.array([10., 10., 100., 100.,100., 100.]))    # state cost matrix
-        #self.Q = np.diag(jnp.array([30., 30., 1., 1., 30., 1.]))
-        self.R = 1e1*np.eye(self.m)                     # control cost matrix
-        self.QN = 1e3*np.eye(self.n)                     # terminal state cost matrix
+        self.n = n                                  # state dimension
+        self.m = m                                  # control dimension
+        self.Q = Q                                  # state cost matrix
+        self.R = R                                  # control cost matrix
+        self.P = QN                                # terminal state cost matrix
         self.s_init = s_init                        # initial state
-        self.s_goal = np.array([0., 0., 0., 0., 0., 0.])      # goal state
-        self.T = 20.  # s                           # simulation time
-        self.dt = 0.05 # s                           # sampling time
+        self.s_goal = s_goal                        # goal state
+        self.T = T #s                               # simulation time
+        self.dt = dt #s                             # sampling time
 
         self.landed = False
 
-    def linearize(self, f, s, u):
-        A, B = jax.jacobian(f, (0, 1))(s, u)
-        return A, B
+        self.timeline = None
+        self.pad_trajectory = None
 
     def ilqr(self, f, s_init, s_goal, N, Q, R, QN, eps = 1e-3, max_iters = 1000):
         if max_iters <= 1:
@@ -65,10 +65,9 @@ class QC_controller_iLQR():
 
         # iLQR loop
         converged = False
-        for iteration in range(max_iters):
+        for iteration in tqdm(range(max_iters)):
             # Linearize the dynamics at each step `k` of `(s_bar, u_bar)`
-            #print("s_bar[:-1], u_bar", s_bar[:-1], u_bar)
-            A, B = jax.vmap(self.linearize, in_axes=(None, 0, 0))(f, s_bar[:-1], u_bar)
+            A, B = jax.vmap(ct.linearize, in_axes=(None, 0, 0))(f, s_bar[:-1], u_bar)
             A, B = np.array(A), np.array(B)
 
             # PART (c) ############################################################
@@ -94,6 +93,7 @@ class QC_controller_iLQR():
             for k in range(N):
                 du[k] = y[k] + Y[k] @ ds[k]
                 ds[k+1] = f(s_bar[k] + ds[k], u_bar[k] + du[k]) - s_bar[k+1]
+
             s_bar += ds
             u_bar += du
             #######################################################################
@@ -112,7 +112,7 @@ class QC_controller_iLQR():
         touchdowntime = 0
 
         # Initialize continuous-time and discretized dynamics
-        f = jax.jit(self.qc.dynamics_jnp)
+        f = jax.jit(self.qc.dynamics)
         fd = jax.jit(lambda s, u, dt=self.dt: s + dt*f(s, u))
 
         # Compute the iLQR solution with the discretized dynamics
@@ -120,7 +120,7 @@ class QC_controller_iLQR():
         start = time.time()
         t = np.arange(0., self.T, self.dt)
         N = t.size
-        s_bar, u_bar, Y, y = self.ilqr(fd, self.s_init, self.s_goal, N, self.Q, self.R, self.QN)
+        s_bar, u_bar, Y, y = self.ilqr(fd, self.s_init, self.s_goal, N, self.Q, self.R, self.P)
         print('done! ({:.2f} s)'.format(time.time() - start), flush=True)
 
         # Simulate on the true continuous-time system
@@ -133,7 +133,6 @@ class QC_controller_iLQR():
         for k in tqdm(range(N - 1)):
             u[k] = u_bar[k] + y[k] + Y[k] @ (s[k] - s_bar[k])
             s[k+1] = odeint(lambda s, t: f(s, u[k]), s[k], t[k:k+2])[1]
-            # s[k+1] = odeint(self.qc.dynamics_ode, s[k], t[k:k+2], (u[k],))[1]
 
         print('done! ({:.2f} s)'.format(time.time() - start), flush=True)
 
