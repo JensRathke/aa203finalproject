@@ -20,12 +20,12 @@ Controller: unconstraint non-linear MPC
  [[0.1 0. ]
  [0.  0.1]]
 
- total control cost: 33867.53399398183
+ total control cost: 34760.460539108586
 
- time to touchdown: 12.700000000000001 s
+ time to touchdown: 12.5 s
 
- touchdown velocities: [-0.24391572 -0.014942    0.01095252] m/s
+ touchdown velocities: [-0.21192411 -0.03034913 -0.00164171] m/s, m/s, rad/s
 
- time to simulate: 89.36 s
+ time to simulate: 92.08 s
 
- Parameters: N_scp: 3 / N_mpc: 20 / known_pad_dynamics: True / wind: True
+ Parameters: N_scp: 3 / N_mpc: 20 / known_pad_dynamics: True / wind: False

@@ -73,7 +73,7 @@ class SimulationPlanar:
         self.plot_trajectory(self.timeline, self.s_trajectory, self.output_filename + "_trajectory")
 
         # Plot states
-        self.plot_states(self.timeline, self.s_trajectory, self.output_filename + "_states", ["x", "y", "dx", "dy", "phi", "omega"])
+        self.plot_states(self.timeline, self.s_trajectory, self.output_filename + "_states", y_labels=["x [m]", "y [m]", "dx [m/s]", "dy [m/s]", "phi [rad]", "omega [rad/s]"])
         
         # Plot controls
         self.plot_controls(self.timeline, self.u_trajectory, self.output_filename + "_controls", [r"$T_1$", r"$T_2$"])
@@ -91,10 +91,10 @@ class SimulationPlanar:
         costs = np.zeros((self.timeline.size, self.controller.n + 1))
 
         for statevarible in range(self.controller.n):
-            costs[:, statevarible] = (self.s_trajectory[:, statevarible] - self.pad_trajectory[0 : self.timeline.size, statevarible]) ** 2 * self.controller.Q[statevarible, statevarible]
+            costs[:, statevarible] = np.sqrt((self.s_trajectory[:, statevarible] - self.pad_trajectory[0 : self.timeline.size, statevarible]) ** 2 * self.controller.Q[statevarible, statevarible])
 
         for t in range(self.timeline.size):
-            costs[t, -1] = (self.s_trajectory[t] - self.pad_trajectory[t]).T @ self.controller.Q @ (self.s_trajectory[t] - self.pad_trajectory[t])
+            costs[t, -1] = np.sqrt((self.s_trajectory[t] - self.pad_trajectory[t]).T @ self.controller.Q @ (self.s_trajectory[t] - self.pad_trajectory[t]))
 
         plot_1x1(self.output_filename + "_statecosts", self.timeline, costs.T, "State Costs", show_legend=True, legend_labels=["x", "y", "dx", "dy", "phi", "omega", "total cost"])
 

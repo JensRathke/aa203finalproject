@@ -10,7 +10,7 @@ def write_textfile(filename, controller, params, P, Q, R, total_control_cost, to
     try:
         with open(filepath + filename + ".md", 'w') as f:
             f.write(
-                f"Controller: {controller}\n\n P / QN:\n {P}\n\n Q:\n {Q}\n\n R:\n {R}\n\n total control cost: {total_control_cost}\n\n time to touchdown: {touchdowntime} s\n\n touchdown velocities: {touchdownvels} m/s\n\n time to simulate: {round(total_time, 2)} s\n\n Parameters: {params}"
+                f"Controller: {controller}\n\n P / QN:\n {P}\n\n Q:\n {Q}\n\n R:\n {R}\n\n total control cost: {total_control_cost}\n\n time to touchdown: {touchdowntime} s\n\n touchdown velocities: {touchdownvels} m/s, m/s, rad/s\n\n time to simulate: {round(total_time, 2)} s\n\n Parameters: {params}"
                 )
     except FileNotFoundError:
         print("The 'docs' directory does not exist")

@@ -95,15 +95,23 @@ class QC_controller_nlMPC():
             s_init = np.concatenate([s_mpc[k, 1:], self.dynamics(s_mpc[k, -1], u_mpc[k, -1]).reshape([1, -1])])
 
         # Plot trajectory and controls
-        fig, ax = plt.subplots(1, 1, dpi=150)
-        fig.suptitle('$N = {}$, '.format(self.N_mpc) + r'$N_\mathrm{SCP} = ' + '{}$'.format(self.N_scp))
+        fig, ax = plt.subplots(1, 2, dpi=600, figsize=(15, 5))
+        fig.suptitle(r'$N_\mathrm{MPC} = ' + '{}$ '.format(self.N_mpc) + r'$N_\mathrm{SCP} = ' + '{}$'.format(self.N_scp))
 
         for k in range(self.K):
-            ax.plot(s_mpc[k, :, 0], s_mpc[k, :, 1], '--', color='k', lw=0.5)
-        ax.plot(s_mpc[:, 0, 0], s_mpc[:, 0, 1], '-', lw=1.0)
-        ax.set_xlabel(r'$x(t)$')
-        ax.set_ylabel(r'$y(t)$')
-        ax.axis('equal')
+            ax[0].plot(s_mpc[k, :, 0], s_mpc[k, :, 1], '-', color='k', lw=0.25)
+        ax[0].plot(s_mpc[:, 0, 0], s_mpc[:, 0, 1], '-', lw=1.0)
+        ax[0].set_xlabel('x [m]')
+        ax[0].set_ylabel('y [m]')
+        ax[0].axis('equal')
+
+        for k in range(self.K):
+            ax[1].plot(s_mpc[k, :, 0], s_mpc[k, :, 1], '-', color='k', lw=0.25)
+        ax[1].plot(s_mpc[:, 0, 0], s_mpc[:, 0, 1], '-', lw=1.0)
+        ax[1].set_xlabel('x [m]')
+        ax[1].set_ylabel('y [m]')
+        ax[1].set_ylim(bottom = -0.5, top = 3)
+        # ax[1].axis('equal')
 
         suffix = "_MPCrollout" #'_Nmpc={}_Nscp={}'.format(self.N_mpc, self.N_scp)
         plt.savefig(filepath + self.filename + suffix + '.png', bbox_inches='tight')

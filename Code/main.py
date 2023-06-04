@@ -38,37 +38,49 @@ if __name__ == '__main__':
     n = 6
     m = 2
 
-    quadcopter = QuadcopterPlanar(2.5, 1.0, 0.5, 0.7, dt, 0.0)
-
     s_init = np.array([4., 45., 0., 0., -0.1 * np.pi, 0.])
-    s_goal = np.array([0., quadcopter.h, 0., 0., 0. , 0.])
-
-    P = 1e2 * np.diag(np.array([1., 1., 0., 10., 10., 0.]))
-    Q = np.diag(np.array([5., 5., 2., 40., 50., 10.]))
-    R = 0.1 * np.eye(m)
-
-    """
-    Simulation of an unconstraint non-linear MPC
-    """
+    ################################################################################
+    # Deterministic dynamics
+    ################################################################################
+    quadcopter = QuadcopterPlanar(2.5, 1.0, 0.5, 0.7, dt, 0.0)
+    
     P = 1e2 * np.diag(np.array([5., 5., 1., 5., 10., 1.]))
     Q = np.diag(np.array([5., 5., 2., 30., 40., 10.]))
     R = 0.1 * np.eye(m)
+    
+    """
+    Simulation of an unconstraint non-linear MPC
+    """
     N_scp = 3
     N_mpc = 20
     known_pad_dynamics = True
-    simulate_wind = True
-    filename = "test_nlMPC_uncontraint"
+    simulate_wind = False
+    filename = "101_det_unconstr_3_20"
 
-    controller1 = QC_controller_nlMPC_unconst(quadcopter, n, m, P, Q, R, s_init, N_mpc, N_scp, T, dt, filename, known_pad_dynamics, simulate_wind)
-    sim1 = SimulationPlanar(quadcopter, controller1, T, dt, k_buffer=N_mpc, output_filename=filename)
-    sim1.simulate()
+    controller = QC_controller_nlMPC_unconst(quadcopter, n, m, P, Q, R, s_init, N_mpc, N_scp, T, dt, filename, known_pad_dynamics, simulate_wind)
+    sim = SimulationPlanar(quadcopter, controller, T, dt, k_buffer=N_mpc, output_filename=filename)
+    sim.simulate()
 
     """
     Simulation of an constraint non-linear MPC
     """
-    P = 1e2 * np.diag(np.array([5., 5., 1., 5., 10., 1.]))
-    Q = np.diag(np.array([5., 5., 2., 30., 40., 10.]))
-    R = 0.1 * np.eye(m)
+    rs = np.inf
+    ru = 40.0
+    rdu = 5.0
+    rT = np.inf
+    N_scp = 3
+    N_mpc = 20
+    known_pad_dynamics = True
+    simulate_wind = False
+    filename = "102_det_constr40_3_20"
+
+    controller = QC_controller_nlMPC_constr(quadcopter, n, m, P, Q, R, rs, ru, rT, rdu, s_init, N_mpc, N_scp, T, dt, filename, known_pad_dynamics, simulate_wind)
+    sim = SimulationPlanar(quadcopter, controller, T, dt, k_buffer=N_mpc, output_filename=filename)
+    sim.simulate()
+
+    """
+    Simulation of an constraint non-linear MPC
+    """
     rs = np.inf
     ru = 20.0
     rdu = 5.0
@@ -77,18 +89,270 @@ if __name__ == '__main__':
     N_mpc = 20
     known_pad_dynamics = True
     simulate_wind = False
-    filename = "test_nlMPC_constraint"
+    filename = "103_det_constr20_3_20"
 
-    controller2 = QC_controller_nlMPC_constr(quadcopter, n, m, P, Q, R, rs, ru, rT, rdu, s_init, N_mpc, N_scp, T, dt, filename, known_pad_dynamics, simulate_wind)
-    sim2 = SimulationPlanar(quadcopter, controller2, T, dt, k_buffer=N_mpc, output_filename=filename)
-    # sim2.simulate()
+    controller = QC_controller_nlMPC_constr(quadcopter, n, m, P, Q, R, rs, ru, rT, rdu, s_init, N_mpc, N_scp, T, dt, filename, known_pad_dynamics, simulate_wind)
+    sim = SimulationPlanar(quadcopter, controller, T, dt, k_buffer=N_mpc, output_filename=filename)
+    sim.simulate()
+
+    """
+    Simulation of an unconstraint non-linear MPC
+    """
+    N_scp = 3
+    N_mpc = 20
+    known_pad_dynamics = False
+    simulate_wind = False
+    filename = "104_det_unconstr_3_20_unknownpad"
+
+    controller = QC_controller_nlMPC_unconst(quadcopter, n, m, P, Q, R, s_init, N_mpc, N_scp, T, dt, filename, known_pad_dynamics, simulate_wind)
+    sim = SimulationPlanar(quadcopter, controller, T, dt, k_buffer=N_mpc, output_filename=filename)
+    sim.simulate()
 
     """
     Simulation of an constraint non-linear MPC
     """
-    P = 1e2 * np.diag(np.array([5., 5., 1., 3., 10., 1.]))
-    Q = np.diag(np.array([5., 5., 2., 20., 40., 10.]))
-    R = 0.1 * np.eye(m)
+    rs = np.inf
+    ru = 20.0
+    rdu = 5.0
+    rT = np.inf
+    N_scp = 3
+    N_mpc = 20
+    known_pad_dynamics = False
+    simulate_wind = False
+    filename = "105_det_constr20_3_20_unknownpad"
+
+    controller = QC_controller_nlMPC_constr(quadcopter, n, m, P, Q, R, rs, ru, rT, rdu, s_init, N_mpc, N_scp, T, dt, filename, known_pad_dynamics, simulate_wind)
+    sim = SimulationPlanar(quadcopter, controller, T, dt, k_buffer=N_mpc, output_filename=filename)
+    sim.simulate()
+
+    """
+    Simulation of an constraint non-linear MPC
+    """
+    rs = np.inf
+    ru = 20.0
+    rdu = 5.0
+    rT = np.inf
+    N_scp = 3
+    N_mpc = 5
+    known_pad_dynamics = True
+    simulate_wind = False
+    filename = "106_det_constr20_3_5"
+
+    controller = QC_controller_nlMPC_constr(quadcopter, n, m, P, Q, R, rs, ru, rT, rdu, s_init, N_mpc, N_scp, T, dt, filename, known_pad_dynamics, simulate_wind)
+    sim = SimulationPlanar(quadcopter, controller, T, dt, k_buffer=N_mpc, output_filename=filename)
+    sim.simulate()
+
+    """
+    Simulation of an constraint non-linear MPC
+    """
+    rs = np.inf
+    ru = 20.0
+    rdu = 5.0
+    rT = np.inf
+    N_scp = 3
+    N_mpc = 10
+    known_pad_dynamics = True
+    simulate_wind = False
+    filename = "107_det_constr20_3_10"
+
+    controller = QC_controller_nlMPC_constr(quadcopter, n, m, P, Q, R, rs, ru, rT, rdu, s_init, N_mpc, N_scp, T, dt, filename, known_pad_dynamics, simulate_wind)
+    sim = SimulationPlanar(quadcopter, controller, T, dt, k_buffer=N_mpc, output_filename=filename)
+    sim.simulate()
+
+    """
+    Simulation of an constraint non-linear MPC
+    """
+    rs = np.inf
+    ru = 20.0
+    rdu = 5.0
+    rT = np.inf
+    N_scp = 3
+    N_mpc = 20
+    known_pad_dynamics = True
+    simulate_wind = False
+    filename = "108_det_constr20_3_20"
+
+    controller = QC_controller_nlMPC_constr(quadcopter, n, m, P, Q, R, rs, ru, rT, rdu, s_init, N_mpc, N_scp, T, dt, filename, known_pad_dynamics, simulate_wind)
+    sim = SimulationPlanar(quadcopter, controller, T, dt, k_buffer=N_mpc, output_filename=filename)
+    sim.simulate()
+
+    """
+    Simulation of an constraint non-linear MPC
+    """
+    rs = np.inf
+    ru = 20.0
+    rdu = 5.0
+    rT = np.inf
+    N_scp = 3
+    N_mpc = 40
+    known_pad_dynamics = True
+    simulate_wind = False
+    filename = "109_det_constr20_3_40"
+
+    controller = QC_controller_nlMPC_constr(quadcopter, n, m, P, Q, R, rs, ru, rT, rdu, s_init, N_mpc, N_scp, T, dt, filename, known_pad_dynamics, simulate_wind)
+    sim = SimulationPlanar(quadcopter, controller, T, dt, k_buffer=N_mpc, output_filename=filename)
+    sim.simulate()
+
+    """
+    Simulation of an constraint non-linear MPC
+    """
+    rs = np.inf
+    ru = 20.0
+    rdu = 5.0
+    rT = np.inf
+    N_scp = 1
+    N_mpc = 20
+    known_pad_dynamics = True
+    simulate_wind = False
+    filename = "110_det_constr20_1_20"
+
+    controller = QC_controller_nlMPC_constr(quadcopter, n, m, P, Q, R, rs, ru, rT, rdu, s_init, N_mpc, N_scp, T, dt, filename, known_pad_dynamics, simulate_wind)
+    sim = SimulationPlanar(quadcopter, controller, T, dt, k_buffer=N_mpc, output_filename=filename)
+    sim.simulate()
+
+    """
+    Simulation of an constraint non-linear MPC
+    """
+    rs = np.inf
+    ru = 20.0
+    rdu = 5.0
+    rT = np.inf
+    N_scp = 10
+    N_mpc = 20
+    known_pad_dynamics = True
+    simulate_wind = False
+    filename = "111_det_constr20_10_20"
+
+    controller = QC_controller_nlMPC_constr(quadcopter, n, m, P, Q, R, rs, ru, rT, rdu, s_init, N_mpc, N_scp, T, dt, filename, known_pad_dynamics, simulate_wind)
+    sim = SimulationPlanar(quadcopter, controller, T, dt, k_buffer=N_mpc, output_filename=filename)
+    sim.simulate()
+
+
+    ################################################################################
+    # Noisy dynamics
+    ################################################################################
+    quadcopter = QuadcopterPlanar(2.5, 1.0, 0.5, 0.7, dt, 0.2)
+
+    """
+    Simulation of an unconstraint non-linear MPC
+    """
+    N_scp = 3
+    N_mpc = 20
+    known_pad_dynamics = True
+    simulate_wind = False
+    filename = "201_noise_unconstr_3_20"
+
+    controller = QC_controller_nlMPC_unconst(quadcopter, n, m, P, Q, R, s_init, N_mpc, N_scp, T, dt, filename, known_pad_dynamics, simulate_wind)
+    sim = SimulationPlanar(quadcopter, controller, T, dt, k_buffer=N_mpc, output_filename=filename)
+    sim.simulate()
+
+    """
+    Simulation of an constraint non-linear MPC
+    """
+    rs = np.inf
+    ru = 20.0
+    rdu = 5.0
+    rT = np.inf
+    N_scp = 3
+    N_mpc = 10
+    known_pad_dynamics = True
+    simulate_wind = False
+    filename = "202_noise_constr20_3_10"
+
+    controller = QC_controller_nlMPC_constr(quadcopter, n, m, P, Q, R, rs, ru, rT, rdu, s_init, N_mpc, N_scp, T, dt, filename, known_pad_dynamics, simulate_wind)
+    sim = SimulationPlanar(quadcopter, controller, T, dt, k_buffer=N_mpc, output_filename=filename)
+    sim.simulate()
+
+    """
+    Simulation of an constraint non-linear MPC
+    """
+    rs = np.inf
+    ru = 20.0
+    rdu = 5.0
+    rT = np.inf
+    N_scp = 3
+    N_mpc = 20
+    known_pad_dynamics = True
+    simulate_wind = False
+    filename = "203_noise_constr20_3_20"
+
+    controller = QC_controller_nlMPC_constr(quadcopter, n, m, P, Q, R, rs, ru, rT, rdu, s_init, N_mpc, N_scp, T, dt, filename, known_pad_dynamics, simulate_wind)
+    sim = SimulationPlanar(quadcopter, controller, T, dt, k_buffer=N_mpc, output_filename=filename)
+    sim.simulate()
+
+    """
+    Simulation of an constraint non-linear MPC
+    """
+    rs = np.inf
+    ru = 20.0
+    rdu = 5.0
+    rT = np.inf
+    N_scp = 3
+    N_mpc = 20
+    known_pad_dynamics = False
+    simulate_wind = False
+    filename = "204_noise_constr20_3_20_unknownpad"
+
+    controller = QC_controller_nlMPC_constr(quadcopter, n, m, P, Q, R, rs, ru, rT, rdu, s_init, N_mpc, N_scp, T, dt, filename, known_pad_dynamics, simulate_wind)
+    sim = SimulationPlanar(quadcopter, controller, T, dt, k_buffer=N_mpc, output_filename=filename)
+    sim.simulate()
+
+
+    ################################################################################
+    # Deterministic dynamics with wind
+    ################################################################################
+    quadcopter = QuadcopterPlanar(2.5, 1.0, 0.5, 0.7, dt, 0.0)
+
+    """
+    Simulation of an unconstraint non-linear MPC
+    """
+    N_scp = 3
+    N_mpc = 20
+    known_pad_dynamics = True
+    simulate_wind = True
+    filename = "301_wind_unconstr_3_20"
+
+    controller = QC_controller_nlMPC_unconst(quadcopter, n, m, P, Q, R, s_init, N_mpc, N_scp, T, dt, filename, known_pad_dynamics, simulate_wind)
+    sim = SimulationPlanar(quadcopter, controller, T, dt, k_buffer=N_mpc, output_filename=filename)
+    sim.simulate()
+
+    """
+    Simulation of an constraint non-linear MPC
+    """
+    rs = np.inf
+    ru = 40.0
+    rdu = 5.0
+    rT = np.inf
+    N_scp = 3
+    N_mpc = 10
+    known_pad_dynamics = True
+    simulate_wind = True
+    filename = "302_wind_constr40_3_10"
+
+    controller = QC_controller_nlMPC_constr(quadcopter, n, m, P, Q, R, rs, ru, rT, rdu, s_init, N_mpc, N_scp, T, dt, filename, known_pad_dynamics, simulate_wind)
+    sim = SimulationPlanar(quadcopter, controller, T, dt, k_buffer=N_mpc, output_filename=filename)
+    sim.simulate()
+
+    """
+    Simulation of an constraint non-linear MPC
+    """
+    rs = np.inf
+    ru = 20.0
+    rdu = 5.0
+    rT = np.inf
+    N_scp = 3
+    N_mpc = 20
+    known_pad_dynamics = True
+    simulate_wind = True
+    filename = "303_wind_constr20_3_20"
+
+    controller = QC_controller_nlMPC_constr(quadcopter, n, m, P, Q, R, rs, ru, rT, rdu, s_init, N_mpc, N_scp, T, dt, filename, known_pad_dynamics, simulate_wind)
+    sim = SimulationPlanar(quadcopter, controller, T, dt, k_buffer=N_mpc, output_filename=filename)
+    sim.simulate()
+
+    """
+    Simulation of an constraint non-linear MPC
+    """
     rs = np.inf
     ru = 40.0
     rdu = 5.0
@@ -97,12 +361,28 @@ if __name__ == '__main__':
     N_mpc = 20
     known_pad_dynamics = True
     simulate_wind = True
-    filename = "test_nlMPC_constraint"
+    filename = "304_wind_constr40_3_20"
 
-    controller2 = QC_controller_nlMPC_constr(quadcopter, n, m, P, Q, R, rs, ru, rT, rdu, s_init, N_mpc, N_scp, T, dt, filename, known_pad_dynamics, simulate_wind)
-    sim2 = SimulationPlanar(quadcopter, controller2, T, dt, k_buffer=N_mpc, output_filename=filename)
-    # sim2.simulate()
+    controller = QC_controller_nlMPC_constr(quadcopter, n, m, P, Q, R, rs, ru, rT, rdu, s_init, N_mpc, N_scp, T, dt, filename, known_pad_dynamics, simulate_wind)
+    sim = SimulationPlanar(quadcopter, controller, T, dt, k_buffer=N_mpc, output_filename=filename)
+    sim.simulate()
 
+    """
+    Simulation of an constraint non-linear MPC
+    """
+    rs = np.inf
+    ru = 40.0
+    rdu = 5.0
+    rT = np.inf
+    N_scp = 3
+    N_mpc = 40
+    known_pad_dynamics = True
+    simulate_wind = True
+    filename = "305_wind_constr40_3_40"
+
+    controller = QC_controller_nlMPC_constr(quadcopter, n, m, P, Q, R, rs, ru, rT, rdu, s_init, N_mpc, N_scp, T, dt, filename, known_pad_dynamics, simulate_wind)
+    sim = SimulationPlanar(quadcopter, controller, T, dt, k_buffer=N_mpc, output_filename=filename)
+    sim.simulate()
     
     ################################################################################
     # 3D Quadcopter Simulations
@@ -123,6 +403,7 @@ if __name__ == '__main__':
     # controller.land()
 
 
+    # s_goal = np.array([0., quadcopter.h, 0., 0., 0. , 0.])
 
     # select_controller = 0
 
@@ -144,4 +425,3 @@ if __name__ == '__main__':
 
     # if select_controller != 0:
     #     controller.land()
-
