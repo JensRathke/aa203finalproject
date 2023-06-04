@@ -85,7 +85,7 @@ class SimulationPlanar:
         self.animate(self.timeline, self.s_trajectory, self.pad_trajectory, self.output_filename)
 
     def write_results(self, total_control_cost, touchdowntime, touchdownvels, total_time):
-        write_textfile(self.output_filename + "_results", self.controller.description, self.controller.P, self.controller.Q, self.controller.R, total_control_cost, touchdowntime, touchdownvels, total_time)
+        write_textfile(self.output_filename + "_results", self.controller.description, self.controller.params, self.controller.P, self.controller.Q, self.controller.R, total_control_cost, touchdowntime, touchdownvels, total_time)
     
     def plot_statecosts(self):
         costs = np.zeros((self.timeline.size, self.controller.n + 1))

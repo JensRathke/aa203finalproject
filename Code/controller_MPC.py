@@ -130,21 +130,25 @@ class PQcopter_controller_MPC():
             A, B, c = ct.affinize(fd, x_mpc[t-1, :-1], u_mpc[t-1])
             A, B = np.array(A), np.array(B)
 
-            print("x1:", x)
-            x_mpc[t], u_mpc[t], status = self.mpc_rollout(x[0], A, B, P, self.Q, self.R, self.N, self.rs, self.ru, self.rT)
-            print(x_mpc[t], u_mpc[t], status)
+            x_mpc[t], u_mpc[t], status = self.mpc_rollout(x, A, B, P, self.Q, self.R, self.N, self.rs, self.ru, self.rT)
             if status == 'infeasible':
                 x_mpc = x_mpc[:t]
                 u_mpc = u_mpc[:t]
                 break
-            x = A @ x + B @ u_mpc[t, 0]
 
-        x_values = jnp.zeros((x_mpc.shape[0], self.N + 1))
-        y_values = jnp.zeros((x_mpc.shape[0], self.N + 1))
+            print("A", A[0].shape)
+            print("x", x_mpc[t, 0].shape)
+            print("B", B[0].shape)
+            print("u", u_mpc[t, 0].shape)
+            x = A[0] @ x_mpc[t, 0] + B[0] @ u_mpc[t, 0]
+            print("x", x)
+
+        x_values = np.zeros((x_mpc.shape[0], self.N + 1))
+        y_values = np.zeros((x_mpc.shape[0], self.N + 1))
 
         for index in range(x_mpc.shape[0]):
             x_values[index] = x_mpc[index, :, 0]
             y_values[index] = x_mpc[index, :, 1]
 
-        self.qc.animate(t_line, x_mpc[:, 0], x_mpc[:, 0], "test_MPC")
+        # self.qc.animate(t_line, x_mpc[:, 0], x_mpc[:, 0], "test_MPC")
         plot_trajectory("test_MPC_traj", x_values, y_values)

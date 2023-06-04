@@ -4,7 +4,7 @@ Controller: constraint non-linear MPC
  [[ 500.    0.    0.    0.    0.    0.]
  [   0.  500.    0.    0.    0.    0.]
  [   0.    0.  100.    0.    0.    0.]
- [   0.    0.    0.  500.    0.    0.]
+ [   0.    0.    0.  300.    0.    0.]
  [   0.    0.    0.    0. 1000.    0.]
  [   0.    0.    0.    0.    0.  100.]]
 
@@ -12,19 +12,19 @@ Controller: constraint non-linear MPC
  [[ 5.  0.  0.  0.  0.  0.]
  [ 0.  5.  0.  0.  0.  0.]
  [ 0.  0.  2.  0.  0.  0.]
- [ 0.  0.  0. 30.  0.  0.]
- [ 0.  0.  0.  0. 50.  0.]
+ [ 0.  0.  0. 20.  0.  0.]
+ [ 0.  0.  0.  0. 40.  0.]
  [ 0.  0.  0.  0.  0. 10.]]
 
  R:
  [[0.1 0. ]
  [0.  0.1]]
 
- total control cost: 9038.543072797947
+ total control cost: 11854.436965788935
 
  time to touchdown: 12.65 s
 
- touchdown velocities: [-0.14526407 -0.03898269  0.01021631] m/s
+ touchdown velocities: [-0.19172341 -0.02183391  0.01902804] m/s
 
- time to simulate: 134.63 s
+ time to simulate: 191.95 s
 

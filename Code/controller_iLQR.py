@@ -25,8 +25,6 @@ class QC_controller_iLQR():
             qcopter: quadcopter to be controlled
             s_init: initial state of the quadcopter
         """
-        self.description = "iLQR"
-
         self.qc = quadcopter
         self.n = n                                  # state dimension
         self.m = m                                  # control dimension
@@ -42,6 +40,9 @@ class QC_controller_iLQR():
 
         self.timeline = None
         self.pad_trajectory = None
+
+        self.description = "iLQR"
+        self.params = ""
 
     def ilqr(self, f, s_init, s_goal, N, Q, R, QN, eps = 1e-3, max_iters = 1000):
         if max_iters <= 1:

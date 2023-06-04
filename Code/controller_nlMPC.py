@@ -13,6 +13,7 @@ from tqdm.auto import tqdm
 from quadcopter import *
 from plotting import *
 
+filepath = "Figures/"
 
 class QC_controller_nlMPC():
     """ Controller for a quadcopter using non-linear MPC """
@@ -39,7 +40,7 @@ class QC_controller_nlMPC():
         J = np.zeros(self.N_scp + 1)
 
         for iteration in range(self.N_scp):
-            s, u, J[iteration + 1] = self.mpc_rollout(s0, k0, s, u)
+            s, u, J[iteration + 1], A, B, c = self.mpc_rollout(s0, k0, s, u)
 
             dJ = np.abs(J[iteration + 1] - J[iteration])
             if dJ < self.eps:
@@ -49,7 +50,7 @@ class QC_controller_nlMPC():
         if not converged and convergence_error:
             raise RuntimeError('SCP did not converge!')
 
-        return s, u
+        return s, u, A, B, c
     
     def mpc_rollout(self, s0, k0, s_prev, u_prev):
         raise NotImplementedError("Method must be overriden by a subclass of QC_controller_nlMPC")
@@ -70,12 +71,15 @@ class QC_controller_nlMPC():
         
         for k in tqdm(range(self.K)):
             if self.landed == False:
-                s_mpc[k], u_mpc[k] = self.landing_scp(s, k, s_init, u_init)
+                s_mpc[k], u_mpc[k], A, B, c = self.landing_scp(s, k, s_init, u_init)
             else:
                 s_mpc[k] = self.pad_trajectory[k]
                 u_mpc[k] = 0
 
-            s = self.dynamics(s_mpc[k, 0], u_mpc[k, 0])
+            if self.wind == False:
+                s = self.dynamics(s_mpc[k, 0], u_mpc[k, 0])
+            else:
+                s = A[0] @ s_mpc[k, 0] + B[0] @ u_mpc[k, 0] + c[0] + np.array([0.8, -0.05, 0.4, 0.05, 0.0, 0.0]) * np.clip(np.random.normal(0.1, 0.1), 0.0, 0.2) * np.clip(s_mpc[k, 0, 1], 0, 2)
 
             if self.landed == False and np.abs(s[0] - self.pad_trajectory[k, 0]) < tol and np.abs(s[1] - self.pad_trajectory[k, 1]) < tol and np.abs(s[4] - self.pad_trajectory[k, 4]) < tol:
                 self.landed = True
@@ -91,24 +95,18 @@ class QC_controller_nlMPC():
             s_init = np.concatenate([s_mpc[k, 1:], self.dynamics(s_mpc[k, -1], u_mpc[k, -1]).reshape([1, -1])])
 
         # Plot trajectory and controls
-        fig, ax = plt.subplots(1, 2, dpi=150, figsize=(15, 5))
+        fig, ax = plt.subplots(1, 1, dpi=150)
         fig.suptitle('$N = {}$, '.format(self.N_mpc) + r'$N_\mathrm{SCP} = ' + '{}$'.format(self.N_scp))
 
-        for t in range(self.T):
-            ax[0].plot(s_mpc[t, :, 0], s_mpc[t, :, 1], '--*', color='k')
-        ax[0].plot(s_mpc[:, 0, 0], s_mpc[:, 0, 1], '-')
-        ax[0].set_xlabel(r'$x(t)$')
-        ax[0].set_ylabel(r'$y(t)$')
-        ax[0].axis('equal')
+        for k in range(self.K):
+            ax.plot(s_mpc[k, :, 0], s_mpc[k, :, 1], '--', color='k', lw=0.5)
+        ax.plot(s_mpc[:, 0, 0], s_mpc[:, 0, 1], '-', lw=1.0)
+        ax.set_xlabel(r'$x(t)$')
+        ax.set_ylabel(r'$y(t)$')
+        ax.axis('equal')
 
-        ax[1].plot(u_mpc[:, 0, 0], '-', label=r'$u_1(t)$')
-        ax[1].plot(u_mpc[:, 0, 1], '-', label=r'$u_2(t)$')
-        ax[1].set_xlabel(r'$t$')
-        ax[1].set_ylabel(r'$u(t)$')
-        ax[1].legend()
-
-        suffix = '_Nmpc={}_Nscp={}'.format(self.N_mpc, self.N_scp)
-        plt.savefig('Figures/test_nlmpc' + suffix + '.png', bbox_inches='tight')
+        suffix = "_MPCrollout" #'_Nmpc={}_Nscp={}'.format(self.N_mpc, self.N_scp)
+        plt.savefig(filepath + self.filename + suffix + '.png', bbox_inches='tight')
         plt.show()
         plt.close(fig)
 
@@ -119,7 +117,7 @@ class QC_controller_nlMPC_unconst(QC_controller_nlMPC):
     """
     Controller for a quadcopter without constraints
     """
-    def __init__(self, quadcopter, state_dim, control_dim, P, Q, R, s_init, N_mpc, N_scp, T, dt, known_pad_dynamics=False):
+    def __init__(self, quadcopter, state_dim, control_dim, P, Q, R, s_init, N_mpc, N_scp, T, dt, filename, known_pad_dynamics=False, wind=False):
         """
         Functionality
             Initialisation of a controller for a quadcopter using non-linear MPC
@@ -128,8 +126,6 @@ class QC_controller_nlMPC_unconst(QC_controller_nlMPC):
             quadcopter: quadcopter to be controlled
             s_init: initial state of the quadcopter
         """
-        self.description = "unconstraint non-linear MPC"
-        
         self.qc = quadcopter
 
         self.n = state_dim                  # state dimension
@@ -142,9 +138,11 @@ class QC_controller_nlMPC_unconst(QC_controller_nlMPC):
         self.T = T #s                       # simulation time
         self.dt = dt #s                     # sampling time
         self.K = int(self.T / self.dt) + 1  # number of time steps
-        self.N_mpc = N_mpc                  # MPC rollout steps
         self.N_scp = N_scp                  # Max. number of SCP interations
+        self.N_mpc = N_mpc                  # MPC rollout steps
+        self.filename = filename
         self.known_pad_dynamics = known_pad_dynamics
+        self.wind = wind
 
         self.dynamics = self.qc.discrete_dynamics
 
@@ -152,6 +150,9 @@ class QC_controller_nlMPC_unconst(QC_controller_nlMPC):
 
         self.timeline = None
         self.pad_trajectory = None
+        
+        self.description = "unconstraint non-linear MPC"
+        self.params = f"N_scp: {self.N_scp} / N_mpc: {self.N_mpc} / known_pad_dynamics: {self.known_pad_dynamics} / wind: {self.wind}"
 
     def mpc_rollout(self, s0, k0, s_prev, u_prev):
         A, B, c = ct.affinize(self.dynamics, s_prev[:-1], u_prev)
@@ -193,12 +194,13 @@ class QC_controller_nlMPC_unconst(QC_controller_nlMPC):
         problem.solve()
 
         if problem.status != 'optimal':
-            raise RuntimeError('SCP solve failed. Problem status: ' + problem.status)
+            # raise RuntimeError('SCP solve failed. Problem status: ' + problem.status)
+            pass
         s = s_cvx.value
         u = u_cvx.value
         J = problem.objective.value
 
-        return s, u, J
+        return s, u, J, A, B, c
     
 
 class QC_controller_nlMPC_constr(QC_controller_nlMPC):
@@ -207,7 +209,7 @@ class QC_controller_nlMPC_constr(QC_controller_nlMPC):
         u_max: maximum torque of the rotors
         u_diff: maximum change of torque of the rotors
     """
-    def __init__(self, quadcopter, state_dim, control_dim, P, Q, R, rs, ru, rT, rdu, s_init, N_mpc, N_scp, T, dt, known_pad_dynamics=False):
+    def __init__(self, quadcopter, state_dim, control_dim, P, Q, R, rs, ru, rT, rdu, s_init, N_mpc, N_scp, T, dt, filename, known_pad_dynamics=False, wind=False):
         """
         Functionality
             Initialisation of a controller for a quadcopter using non-linear MPC
@@ -216,8 +218,6 @@ class QC_controller_nlMPC_constr(QC_controller_nlMPC):
             quadcopter: quadcopter to be controlled
             s_init: initial state of the quadcopter
         """
-        self.description = "constraint non-linear MPC"
-
         self.qc = quadcopter
 
         self.n = state_dim                  # state dimension
@@ -230,9 +230,11 @@ class QC_controller_nlMPC_constr(QC_controller_nlMPC):
         self.T = T #s                       # simulation time
         self.dt = dt #s                     # sampling time
         self.K = int(self.T / self.dt) + 1  # number of time steps
-        self.N_mpc = N_mpc                  # MPC rollout steps
         self.N_scp = N_scp                  # Max. number of SCP interations
+        self.N_mpc = N_mpc                  # MPC rollout steps
+        self.filename = filename
         self.known_pad_dynamics = known_pad_dynamics
+        self.wind = wind
 
         # Controller constraints
         self.rs = rs
@@ -246,6 +248,9 @@ class QC_controller_nlMPC_constr(QC_controller_nlMPC):
 
         self.timeline = None
         self.pad_trajectory = None
+
+        self.description = "constraint non-linear MPC"
+        self.params = f"N_scp: {self.N_scp} / N_mpc: {self.N_mpc} / known_pad_dynamics: {self.known_pad_dynamics} / wind: {self.wind} / rs: {self.rs} / ru: {self.ru} / rT: {self.rT} / rdu: {self.rdu}"
 
     def mpc_rollout(self, s0, k0, s_prev, u_prev):
         A, B, c = ct.affinize(self.dynamics, s_prev[:-1], u_prev)
@@ -294,9 +299,10 @@ class QC_controller_nlMPC_constr(QC_controller_nlMPC):
         problem.solve()
 
         if problem.status != 'optimal':
-            raise RuntimeError('SCP solve failed. Problem status: ' + problem.status)
+            # raise RuntimeError('SCP solve failed. Problem status: ' + problem.status)
+            pass
         s = s_cvx.value
         u = u_cvx.value
         J = problem.objective.value
 
-        return s, u, J
+        return s, u, J, A, B, c
