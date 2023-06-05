@@ -160,7 +160,7 @@ class QC_controller_nlMPC_unconst(QC_controller_nlMPC):
         self.pad_trajectory = None
         
         self.description = "unconstraint non-linear MPC"
-        self.params = f"N_scp: {self.N_scp} / N_mpc: {self.N_mpc} / known_pad_dynamics: {self.known_pad_dynamics} / wind: {self.wind}"
+        self.params = f"N_scp: {self.N_scp} / N_mpc: {self.N_mpc} / known_pad_dynamics: {self.known_pad_dynamics} / noise variance: {self.qc.noise_var} / wind: {self.wind}"
 
     def mpc_rollout(self, s0, k0, s_prev, u_prev):
         A, B, c = ct.affinize(self.dynamics, s_prev[:-1], u_prev)
@@ -258,7 +258,7 @@ class QC_controller_nlMPC_constr(QC_controller_nlMPC):
         self.pad_trajectory = None
 
         self.description = "constraint non-linear MPC"
-        self.params = f"N_scp: {self.N_scp} / N_mpc: {self.N_mpc} / known_pad_dynamics: {self.known_pad_dynamics} / wind: {self.wind} / rs: {self.rs} / ru: {self.ru} / rT: {self.rT} / rdu: {self.rdu}"
+        self.params = f"N_scp: {self.N_scp} / N_mpc: {self.N_mpc} / known_pad_dynamics: {self.known_pad_dynamics} / noise variance: {self.qc.noise_var} / wind: {self.wind} / rs: {self.rs} / ru: {self.ru} / rT: {self.rT} / rdu: {self.rdu}"
 
     def mpc_rollout(self, s0, k0, s_prev, u_prev):
         A, B, c = ct.affinize(self.dynamics, s_prev[:-1], u_prev)

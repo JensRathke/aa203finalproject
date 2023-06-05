@@ -42,6 +42,9 @@ class PQcopter_controller_MPC():
         self.ru = 0.1
         self.rT = jnp.inf
 
+        self.description = "MPC with linearization"
+        self.params = ""
+
     def linearize_penalize(self, f, s, u):
         A, B = jax.jacobian(f, (0, 1))(s, u)
         P_dare = solve_discrete_are(A, B, self.Q, self.R)
