@@ -76,7 +76,7 @@ class SimulationPlanar:
         self.plot_states(self.timeline, self.s_trajectory, self.output_filename + "_states", y_labels=["x [m]", "y [m]", "dx [m/s]", "dy [m/s]", "phi [rad]", "omega [rad/s]"])
         
         # Plot controls
-        self.plot_controls(self.timeline, self.u_trajectory, self.output_filename + "_controls", [r"$T_1$", r"$T_2$"])
+        self.plot_controls(self.timeline, self.u_trajectory, self.output_filename + "_controls", y_labels=[r"$T_1$ [N]", r"$T_2$ [N]"])
 
         # Plot state costs
         self.plot_statecosts()

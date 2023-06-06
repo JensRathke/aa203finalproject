@@ -35,10 +35,40 @@ if __name__ == '__main__':
     T = 20 #s
     dt = 0.05 #s 
 
-    n = 6
-    m = 2
+    n = 6 # state dimension
+    m = 2 # control dimension
 
     s_init = np.array([4., 45., 0., 0., -0.1 * np.pi, 0.])
+    ################################################################################
+    # Single Simulation
+    ################################################################################
+    quadcopter = QuadcopterPlanar(2.5, 1.0, 0.5, 0.7, dt, 0.4)
+    
+    P = 1e2 * np.diag(np.array([5., 5., 1., 5., 10., 1.]))
+    Q = np.diag(np.array([5., 5., 2., 30., 40., 10.]))
+    R = 0.1 * np.eye(m)
+    
+    rs = np.inf
+    ru = 40.0
+    rdu = 5.0
+    rT = np.inf
+    N_scp = 3
+    N_mpc = 20
+    known_pad_dynamics = True
+    simulate_wind = False
+    filename = "000_test"
+
+    controller = QC_controller_nlMPC_unconst(quadcopter, n, m, P, Q, R, s_init, N_mpc, N_scp, T, dt, filename, known_pad_dynamics, simulate_wind)
+    sim = SimulationPlanar(quadcopter, controller, T, dt, k_buffer=N_mpc, output_filename=filename)
+    # sim.simulate()
+
+    controller = QC_controller_nlMPC_constr(quadcopter, n, m, P, Q, R, rs, ru, rT, rdu, s_init, N_mpc, N_scp, T, dt, filename, known_pad_dynamics, simulate_wind)
+    sim = SimulationPlanar(quadcopter, controller, T, dt, k_buffer=N_mpc, output_filename=filename)
+    # sim.simulate()
+
+    if False:
+        exit()
+
     ################################################################################
     # Deterministic dynamics
     ################################################################################
@@ -231,7 +261,7 @@ if __name__ == '__main__':
     ################################################################################
     # Noisy dynamics
     ################################################################################
-    quadcopter = QuadcopterPlanar(2.5, 1.0, 0.5, 0.7, dt, 0.2)
+    quadcopter = QuadcopterPlanar(2.5, 1.0, 0.5, 0.7, dt, 0.4)
 
     """
     Simulation of an unconstraint non-linear MPC

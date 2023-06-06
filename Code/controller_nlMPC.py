@@ -89,7 +89,7 @@ class QC_controller_nlMPC():
                     touchdownvels[1] = s_mpc[k, 0, 3] - (self.pad_trajectory[k, 3] - self.pad_trajectory[k-1, 3]) / self.dt
                     touchdownvels[2] = s_mpc[k, 0, 5] - (self.pad_trajectory[k, 5] - self.pad_trajectory[k-1, 5]) / self.dt
 
-            total_control_cost += u_mpc[k, 0].T @ self.R @ u_mpc[k, 0]
+            total_control_cost += np.sqrt(u_mpc[k, 0].T @ self.R @ u_mpc[k, 0])
 
             u_init = np.concatenate([u_mpc[k, 1:], u_mpc[k, -1:]])
             s_init = np.concatenate([s_mpc[k, 1:], self.dynamics(s_mpc[k, -1], u_mpc[k, -1]).reshape([1, -1])])
