@@ -89,7 +89,7 @@ if __name__ == '__main__':
 
     controller = QC_controller_nlMPC_unconst(quadcopter, n, m, P, Q, R, s_init, N_mpc, N_scp, T, dt, filename, known_pad_dynamics, simulate_wind)
     sim = SimulationPlanar(quadcopter, controller, T, dt, k_buffer=N_mpc, output_filename=filename)
-    sim.simulate()
+    # sim.simulate()
 
     """
     Simulation of an constraint non-linear MPC
@@ -106,7 +106,7 @@ if __name__ == '__main__':
 
     controller = QC_controller_nlMPC_constr(quadcopter, n, m, P, Q, R, rs, ru, rT, rdu, s_init, N_mpc, N_scp, T, dt, filename, known_pad_dynamics, simulate_wind)
     sim = SimulationPlanar(quadcopter, controller, T, dt, k_buffer=N_mpc, output_filename=filename)
-    sim.simulate()
+    # sim.simulate()
 
     """
     Simulation of an constraint non-linear MPC
@@ -123,7 +123,7 @@ if __name__ == '__main__':
 
     controller = QC_controller_nlMPC_constr(quadcopter, n, m, P, Q, R, rs, ru, rT, rdu, s_init, N_mpc, N_scp, T, dt, filename, known_pad_dynamics, simulate_wind)
     sim = SimulationPlanar(quadcopter, controller, T, dt, k_buffer=N_mpc, output_filename=filename)
-    sim.simulate()
+    # sim.simulate()
 
     """
     Simulation of an unconstraint non-linear MPC
@@ -136,7 +136,7 @@ if __name__ == '__main__':
 
     controller = QC_controller_nlMPC_unconst(quadcopter, n, m, P, Q, R, s_init, N_mpc, N_scp, T, dt, filename, known_pad_dynamics, simulate_wind)
     sim = SimulationPlanar(quadcopter, controller, T, dt, k_buffer=N_mpc, output_filename=filename)
-    sim.simulate()
+    # sim.simulate()
 
     """
     Simulation of an constraint non-linear MPC
@@ -153,7 +153,7 @@ if __name__ == '__main__':
 
     controller = QC_controller_nlMPC_constr(quadcopter, n, m, P, Q, R, rs, ru, rT, rdu, s_init, N_mpc, N_scp, T, dt, filename, known_pad_dynamics, simulate_wind)
     sim = SimulationPlanar(quadcopter, controller, T, dt, k_buffer=N_mpc, output_filename=filename)
-    sim.simulate()
+    # sim.simulate()
 
     """
     Simulation of an constraint non-linear MPC
@@ -170,7 +170,7 @@ if __name__ == '__main__':
 
     controller = QC_controller_nlMPC_constr(quadcopter, n, m, P, Q, R, rs, ru, rT, rdu, s_init, N_mpc, N_scp, T, dt, filename, known_pad_dynamics, simulate_wind)
     sim = SimulationPlanar(quadcopter, controller, T, dt, k_buffer=N_mpc, output_filename=filename)
-    sim.simulate()
+    # sim.simulate()
 
     """
     Simulation of an constraint non-linear MPC
@@ -187,7 +187,7 @@ if __name__ == '__main__':
 
     controller = QC_controller_nlMPC_constr(quadcopter, n, m, P, Q, R, rs, ru, rT, rdu, s_init, N_mpc, N_scp, T, dt, filename, known_pad_dynamics, simulate_wind)
     sim = SimulationPlanar(quadcopter, controller, T, dt, k_buffer=N_mpc, output_filename=filename)
-    sim.simulate()
+    # sim.simulate()
 
     """
     Simulation of an constraint non-linear MPC
@@ -204,7 +204,7 @@ if __name__ == '__main__':
 
     controller = QC_controller_nlMPC_constr(quadcopter, n, m, P, Q, R, rs, ru, rT, rdu, s_init, N_mpc, N_scp, T, dt, filename, known_pad_dynamics, simulate_wind)
     sim = SimulationPlanar(quadcopter, controller, T, dt, k_buffer=N_mpc, output_filename=filename)
-    sim.simulate()
+    # sim.simulate()
 
     """
     Simulation of an constraint non-linear MPC
@@ -221,7 +221,7 @@ if __name__ == '__main__':
 
     controller = QC_controller_nlMPC_constr(quadcopter, n, m, P, Q, R, rs, ru, rT, rdu, s_init, N_mpc, N_scp, T, dt, filename, known_pad_dynamics, simulate_wind)
     sim = SimulationPlanar(quadcopter, controller, T, dt, k_buffer=N_mpc, output_filename=filename)
-    sim.simulate()
+    # sim.simulate()
 
     """
     Simulation of an constraint non-linear MPC
@@ -238,7 +238,7 @@ if __name__ == '__main__':
 
     controller = QC_controller_nlMPC_constr(quadcopter, n, m, P, Q, R, rs, ru, rT, rdu, s_init, N_mpc, N_scp, T, dt, filename, known_pad_dynamics, simulate_wind)
     sim = SimulationPlanar(quadcopter, controller, T, dt, k_buffer=N_mpc, output_filename=filename)
-    sim.simulate()
+    # sim.simulate()
 
     """
     Simulation of an constraint non-linear MPC
@@ -255,7 +255,24 @@ if __name__ == '__main__':
 
     controller = QC_controller_nlMPC_constr(quadcopter, n, m, P, Q, R, rs, ru, rT, rdu, s_init, N_mpc, N_scp, T, dt, filename, known_pad_dynamics, simulate_wind)
     sim = SimulationPlanar(quadcopter, controller, T, dt, k_buffer=N_mpc, output_filename=filename)
-    sim.simulate()
+    # sim.simulate()
+
+    """
+    Simulation of an constraint non-linear MPC
+    """
+    rs = np.inf
+    ru = 20.0
+    rdu = 5.0
+    rT = np.inf
+    N_scp = 100
+    N_mpc = 20
+    known_pad_dynamics = True
+    simulate_wind = False
+    filename = "112_det_constr20_100_20"
+
+    controller = QC_controller_nlMPC_constr(quadcopter, n, m, P, Q, R, rs, ru, rT, rdu, s_init, N_mpc, N_scp, T, dt, filename, known_pad_dynamics, simulate_wind)
+    sim = SimulationPlanar(quadcopter, controller, T, dt, k_buffer=N_mpc, output_filename=filename)
+    # sim.simulate()
 
 
     ################################################################################
@@ -274,7 +291,7 @@ if __name__ == '__main__':
 
     controller = QC_controller_nlMPC_unconst(quadcopter, n, m, P, Q, R, s_init, N_mpc, N_scp, T, dt, filename, known_pad_dynamics, simulate_wind)
     sim = SimulationPlanar(quadcopter, controller, T, dt, k_buffer=N_mpc, output_filename=filename)
-    sim.simulate()
+    # sim.simulate()
 
     """
     Simulation of an constraint non-linear MPC
@@ -291,7 +308,7 @@ if __name__ == '__main__':
 
     controller = QC_controller_nlMPC_constr(quadcopter, n, m, P, Q, R, rs, ru, rT, rdu, s_init, N_mpc, N_scp, T, dt, filename, known_pad_dynamics, simulate_wind)
     sim = SimulationPlanar(quadcopter, controller, T, dt, k_buffer=N_mpc, output_filename=filename)
-    sim.simulate()
+    # sim.simulate()
 
     """
     Simulation of an constraint non-linear MPC
@@ -308,7 +325,7 @@ if __name__ == '__main__':
 
     controller = QC_controller_nlMPC_constr(quadcopter, n, m, P, Q, R, rs, ru, rT, rdu, s_init, N_mpc, N_scp, T, dt, filename, known_pad_dynamics, simulate_wind)
     sim = SimulationPlanar(quadcopter, controller, T, dt, k_buffer=N_mpc, output_filename=filename)
-    sim.simulate()
+    # sim.simulate()
 
     """
     Simulation of an constraint non-linear MPC
@@ -325,7 +342,7 @@ if __name__ == '__main__':
 
     controller = QC_controller_nlMPC_constr(quadcopter, n, m, P, Q, R, rs, ru, rT, rdu, s_init, N_mpc, N_scp, T, dt, filename, known_pad_dynamics, simulate_wind)
     sim = SimulationPlanar(quadcopter, controller, T, dt, k_buffer=N_mpc, output_filename=filename)
-    sim.simulate()
+    # sim.simulate()
 
 
     ################################################################################
@@ -344,7 +361,7 @@ if __name__ == '__main__':
 
     controller = QC_controller_nlMPC_unconst(quadcopter, n, m, P, Q, R, s_init, N_mpc, N_scp, T, dt, filename, known_pad_dynamics, simulate_wind)
     sim = SimulationPlanar(quadcopter, controller, T, dt, k_buffer=N_mpc, output_filename=filename)
-    sim.simulate()
+    # sim.simulate()
 
     """
     Simulation of an constraint non-linear MPC
@@ -361,7 +378,7 @@ if __name__ == '__main__':
 
     controller = QC_controller_nlMPC_constr(quadcopter, n, m, P, Q, R, rs, ru, rT, rdu, s_init, N_mpc, N_scp, T, dt, filename, known_pad_dynamics, simulate_wind)
     sim = SimulationPlanar(quadcopter, controller, T, dt, k_buffer=N_mpc, output_filename=filename)
-    sim.simulate()
+    # sim.simulate()
 
     """
     Simulation of an constraint non-linear MPC
@@ -378,7 +395,7 @@ if __name__ == '__main__':
 
     controller = QC_controller_nlMPC_constr(quadcopter, n, m, P, Q, R, rs, ru, rT, rdu, s_init, N_mpc, N_scp, T, dt, filename, known_pad_dynamics, simulate_wind)
     sim = SimulationPlanar(quadcopter, controller, T, dt, k_buffer=N_mpc, output_filename=filename)
-    sim.simulate()
+    # sim.simulate()
 
     """
     Simulation of an constraint non-linear MPC
@@ -395,7 +412,7 @@ if __name__ == '__main__':
 
     controller = QC_controller_nlMPC_constr(quadcopter, n, m, P, Q, R, rs, ru, rT, rdu, s_init, N_mpc, N_scp, T, dt, filename, known_pad_dynamics, simulate_wind)
     sim = SimulationPlanar(quadcopter, controller, T, dt, k_buffer=N_mpc, output_filename=filename)
-    sim.simulate()
+    # sim.simulate()
 
     """
     Simulation of an constraint non-linear MPC
@@ -405,10 +422,52 @@ if __name__ == '__main__':
     rdu = 5.0
     rT = np.inf
     N_scp = 3
-    N_mpc = 40
+    N_mpc = 30
     known_pad_dynamics = True
     simulate_wind = True
-    filename = "305_wind_constr40_3_40"
+    filename = "305_wind_constr40_3_30"
+
+    controller = QC_controller_nlMPC_constr(quadcopter, n, m, P, Q, R, rs, ru, rT, rdu, s_init, N_mpc, N_scp, T, dt, filename, known_pad_dynamics, simulate_wind)
+    sim = SimulationPlanar(quadcopter, controller, T, dt, k_buffer=N_mpc, output_filename=filename)
+    # sim.simulate()
+
+    """
+    Simulation of an constraint non-linear MPC
+    """
+    P = 1e2 * np.diag(np.array([5., 5., 1., 2., 10., 1.]))
+    Q = np.diag(np.array([5., 5., 2., 10., 40., 10.]))
+    R = 0.1 * np.eye(m)
+
+    rs = np.inf
+    ru = 40.0
+    rdu = 5.0
+    rT = np.inf
+    N_scp = 3
+    N_mpc = 20
+    known_pad_dynamics = True
+    simulate_wind = True
+    filename = "306_wind_constr40_3_20_newPQ"
+
+    controller = QC_controller_nlMPC_constr(quadcopter, n, m, P, Q, R, rs, ru, rT, rdu, s_init, N_mpc, N_scp, T, dt, filename, known_pad_dynamics, simulate_wind)
+    sim = SimulationPlanar(quadcopter, controller, T, dt, k_buffer=N_mpc, output_filename=filename)
+    sim.simulate()
+
+    """
+    Simulation of an constraint non-linear MPC
+    """
+    P = 1e2 * np.diag(np.array([5., 5., 1., 2., 10., 1.]))
+    Q = np.diag(np.array([5., 5., 2., 10., 40., 10.]))
+    R = 0.1 * np.eye(m)
+
+    rs = np.inf
+    ru = 40.0
+    rdu = 5.0
+    rT = np.inf
+    N_scp = 3
+    N_mpc = 30
+    known_pad_dynamics = True
+    simulate_wind = True
+    filename = "307_wind_constr40_3_30_newPQ"
 
     controller = QC_controller_nlMPC_constr(quadcopter, n, m, P, Q, R, rs, ru, rT, rdu, s_init, N_mpc, N_scp, T, dt, filename, known_pad_dynamics, simulate_wind)
     sim = SimulationPlanar(quadcopter, controller, T, dt, k_buffer=N_mpc, output_filename=filename)

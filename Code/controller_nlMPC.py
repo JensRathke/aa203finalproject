@@ -85,9 +85,9 @@ class QC_controller_nlMPC():
                 self.landed = True
                 touchdowntime = self.timeline[k]
                 if k > 0:
-                    touchdownvels[0] = s_mpc[k, 0, 2] - (self.pad_trajectory[k, 2] - self.pad_trajectory[k-1, 2]) / self.dt
-                    touchdownvels[1] = s_mpc[k, 0, 3] - (self.pad_trajectory[k, 3] - self.pad_trajectory[k-1, 3]) / self.dt
-                    touchdownvels[2] = s_mpc[k, 0, 5] - (self.pad_trajectory[k, 5] - self.pad_trajectory[k-1, 5]) / self.dt
+                    touchdownvels[0] = np.abs(s_mpc[k, 0, 2] - (self.pad_trajectory[k, 2] - self.pad_trajectory[k-1, 2]) / self.dt)
+                    touchdownvels[1] = np.abs(s_mpc[k, 0, 3] - (self.pad_trajectory[k, 3] - self.pad_trajectory[k-1, 3]) / self.dt)
+                    touchdownvels[2] = np.abs(s_mpc[k, 0, 5] - (self.pad_trajectory[k, 5] - self.pad_trajectory[k-1, 5]) / self.dt)
 
             total_control_cost += np.sqrt(u_mpc[k, 0].T @ self.R @ u_mpc[k, 0])
 
