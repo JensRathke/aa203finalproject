@@ -450,7 +450,7 @@ if __name__ == '__main__':
 
     controller = QC_controller_nlMPC_constr(quadcopter, n, m, P, Q, R, rs, ru, rT, rdu, s_init, N_mpc, N_scp, T, dt, filename, known_pad_dynamics, simulate_wind)
     sim = SimulationPlanar(quadcopter, controller, T, dt, k_buffer=N_mpc, output_filename=filename)
-    sim.simulate()
+    # sim.simulate()
 
     """
     Simulation of an constraint non-linear MPC
